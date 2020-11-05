@@ -1,0 +1,23 @@
+{
+  "name": "keyfi-token",
+  "version": "0.0.1",
+  "description": "Solidity smart contracts for Keyfi token economics",
+  "author": "Keyfi Foundation",
+  "scripts": {
+    "test": "truffle test",
+    "test:cov": "solidity-coverage",
+    "lint:sol": "solhint contracts/**/*.sol"
+  },
+  "devDependencies": {
+    "@openzeppelin/truffle-upgrades": "^1.1.0",
+    "dotenv": "^8.2.0",
+    "solhint": "^1.5.1",
+    "solidity-coverage": "^0.6.0-beta.3"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^3.2.0",
+    "@openzeppelin/test-helpers": "^0.5.7",
+    "ethereumjs-util": "^6.1.0",
+    "truffle-hdwallet-provider": "^1.0.17"
+  }
+}
