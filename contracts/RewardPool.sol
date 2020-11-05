@@ -224,4 +224,13 @@ contract RewardPool is Ownable {
             rewardToken.transfer(_to, _amount);
         }
     }
+
+    function rewardBlocksLeft() 
+        public
+        view
+        returns (uint256)
+    {
+        uint256 balance = rewardToken.balanceOf(address(this));
+        return balance.div(rewardPerBlock);
+    }
 }
