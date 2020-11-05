@@ -39,7 +39,7 @@ git config user.email "username@domain.suffix"
 5. Use GitHub to raise a Pull Request. Add labels as appropriate, and set one or more reviewers if necessary. Then share the PR link in the proper channels to request for reviews.
 6. Respond to any comments as appropriate, making changes and `git push` ing further changes as appropriate.
 7. When all comments are dealt and the PR finally gets a :+1: from the reviewers then merge the PR. _Note this scheme does not use the `git flow feature finish`_ option as that merges into develop automatically without the option for review. [see this stackexchange for more on that](http://programmers.stackexchange.com/questions/187723/code-review-with-git-flow-and-github). The corresponding feature branch can now be deleted on the forked repository (github provides an option to do so).
-8. In your command-line `git checkout develop` then `git pull upstream develop` to get the latest code and `git branch -D feature/{branchname}` to delete the old feature branch.
+8. In your command-line `git checkout develop` then `git pull upstream develop` to get the latest code and `git branch -D feature/{branchname}` to delete the old feature branch. It's also recommended to do `git push origin develop` in order to keep the local fork up-to-date.
 
 #### Hotfixes and Support branches
 
