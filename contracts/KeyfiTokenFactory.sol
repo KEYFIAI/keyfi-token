@@ -10,9 +10,9 @@ import "@openzeppelin/contracts/token/ERC20/TokenTimelock.sol";
 contract KeyfiTokenFactory {
     using SafeERC20 for KeyfiToken;
 
-    uint256 constant INITIAL_SUPPLY = 10000000;
-    uint256 constant REWARD_RATE = 700000000000000000;  // 0.7 per block
-    uint256 constant BONUS_BLOCKS = 390000;             // approx. 2 months
+    uint256 constant INITIAL_SUPPLY = 10000000.mul(1e18);   // 10,000,000 initial supply
+    uint256 constant REWARD_RATE = 700000000000000000;      // 0.7 per block
+    uint256 constant BONUS_BLOCKS = 390000;                 // approx. 2 months
 
     KeyfiToken public token;    
     RewardPool public pool;
@@ -20,21 +20,21 @@ contract KeyfiTokenFactory {
     TokenTimelock public communityTimelock;
 
     constructor(
-        address owner, 
-        address rewardPool, 
         address team, 
         address community,
-        uint256 startBlock
+        uint256 startBlock,
+        uint256 timelockPeriod
     ) 
         public 
+        returns (address _token, address _rewardPool)
     {
         token = new KeyfiToken();
         pool = new RewardPool(token, REWARD_RATE, startBlock, startBlock + BONUS_BLOCKS);
 
         token.mint(address(this), INITIAL_SUPPLY);
         
-        teamTimelock = new TokenTimelock(token, team, now + 365 days);
-        communityTimelock = new TokenTimelock(token, community, now + 365 days);
+        teamTimelock = new TokenTimelock(token, team, now + timelockPeriod);
+        communityTimelock = new TokenTimelock(token, community, now + timelockPeriod);
 
         // initial token allocation
         token.safeTransfer(rewardPool, 5000000);
@@ -43,5 +43,8 @@ contract KeyfiTokenFactory {
 
         token.transferOwnership(community);
         pool.transferOwnership(community);
+
+        // maybe emit event with addresses
+        return(address(token), address(pool));
     }
 }
