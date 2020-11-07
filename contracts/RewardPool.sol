@@ -216,21 +216,15 @@ contract RewardPool is Ownable {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
         
         uint256 _pid = stakingTokenIndexes[address(_token)];
-        
         checkpoint(_pid);
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
+        uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
+        user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
-
-        if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
-            if(pending > 0) {
-                safeRewardTransfer(msg.sender, pending);
-            }
-        }
-
-        if(_amount > 0) {
-            user.amount = user.amount.add(_amount);
+        
+        safeRewardTransfer(msg.sender, pending);
+        if (_amount > 0) {
             pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
         }
 
@@ -246,16 +240,14 @@ contract RewardPool is Ownable {
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "invalid amount specified");
+
         checkpoint(_pid);
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
+        user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
 
-        if(pending > 0) {
-            safeRewardTransfer(msg.sender, pending);
-        }
-
+        safeRewardTransfer(msg.sender, pending);
         if(_amount > 0) {
-            user.amount = user.amount.sub(_amount);
             pool.stakingToken.safeTransfer(address(msg.sender), _amount);
         }
 
@@ -283,10 +275,12 @@ contract RewardPool is Ownable {
         internal 
     {
         uint256 rewardBal = rewardToken.balanceOf(address(this));
-        if (_amount > rewardBal) {
-            rewardToken.transfer(_to, rewardBal);
-        } else {
-            rewardToken.transfer(_to, _amount);
+        if (_amount > 0) {
+            if (_amount > rewardBal) {
+                rewardToken.transfer(_to, rewardBal);
+            } else {
+                rewardToken.transfer(_to, _amount);
+            }
         }
     }
 
