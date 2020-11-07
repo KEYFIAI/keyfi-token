@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.4.22 <0.8.0;
+//pragma solidity >=0.4.22 <0.8.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract KeyfiToken  is Ownable {
+contract KeyfiToken is IERC20, Ownable {
     string public constant name = "Keyfi Token";
     string public constant symbol = "KEYFI";
     uint8 public constant decimals = 18;
-    uint256 public totalSupply = 0;
+    uint256 public override totalSupply = 0;
 
     mapping (address => mapping (address => uint256)) internal allowances;
     mapping (address => uint256) internal balances;
@@ -31,7 +33,10 @@ contract KeyfiToken  is Ownable {
     event Transfer(address indexed from, address indexed to, uint256 amount);
     event Approval(address indexed owner, address indexed spender, uint256 amount);
 
-    function mint(address _to, uint256 _amount) public onlyOwner {
+    function mint(address _to, uint256 _amount) 
+        public 
+        onlyOwner 
+    {
         totalSupply = add256(totalSupply, _amount, "KeyfiToken::mint: mint amount overflows");
         balances[_to] = add256(balances[_to], _amount, "KeyfiToken::mint: mint amount overflows");
         _moveDelegates(address(0), delegates[_to], _amount);
@@ -45,7 +50,12 @@ contract KeyfiToken  is Ownable {
      * @param spender The address of the account spending the funds
      * @return The number of tokens approved
      */
-    function allowance(address account, address spender) external view returns (uint256) {
+    function allowance(address account, address spender) 
+        external 
+        view 
+        override 
+        returns (uint256) 
+    {
         return allowances[account][spender];
     }
 
@@ -57,7 +67,11 @@ contract KeyfiToken  is Ownable {
      * @param amount The number of tokens that are approved (2^256-1 means infinite)
      * @return Whether or not the approval succeeded
      */
-    function approve(address spender, uint256 amount) external returns (bool) {
+    function approve(address spender, uint256 amount) 
+        external 
+        override
+        returns (bool) 
+    {
         allowances[msg.sender][spender] = amount;
         emit Approval(msg.sender, spender, amount);
         return true;
@@ -68,7 +82,12 @@ contract KeyfiToken  is Ownable {
      * @param account The address of the account to get the balance of
      * @return The number of tokens held
      */
-    function balanceOf(address account) external view returns (uint256) {
+    function balanceOf(address account) 
+        external 
+        view 
+        override 
+        returns (uint256) 
+    {
         return balances[account];
     }
 
@@ -78,7 +97,11 @@ contract KeyfiToken  is Ownable {
      * @param amount The number of tokens to transfer
      * @return Whether or not the transfer succeeded
      */
-    function transfer(address dst, uint256 amount) external returns (bool) {
+    function transfer(address dst, uint256 amount) 
+        external 
+        override
+        returns (bool) 
+    {
         _transferTokens(msg.sender, dst, amount);
         return true;
     }
@@ -90,7 +113,11 @@ contract KeyfiToken  is Ownable {
      * @param amount The number of tokens to transfer
      * @return Whether or not the transfer succeeded
      */
-    function transferFrom(address src, address dst, uint256 amount) external returns (bool) {
+    function transferFrom(address src, address dst, uint256 amount) 
+        external 
+        override
+        returns (bool) 
+    {
         address spender = msg.sender;
         uint256 spenderAllowance = allowances[src][spender];
 
@@ -109,7 +136,9 @@ contract KeyfiToken  is Ownable {
      * @notice Delegate votes from `msg.sender` to `delegatee`
      * @param delegatee The address to delegate votes to
      */
-    function delegate(address delegatee) public {
+    function delegate(address delegatee) 
+        public 
+    {
         return _delegate(msg.sender, delegatee);
     }
 
@@ -122,7 +151,9 @@ contract KeyfiToken  is Ownable {
      * @param r Half of the ECDSA signature pair
      * @param s Half of the ECDSA signature pair
      */
-    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) public {
+    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) 
+        public 
+    {
         bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), getChainId(), address(this)));
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
@@ -138,7 +169,11 @@ contract KeyfiToken  is Ownable {
      * @param account The address to get votes balance
      * @return The number of current votes for `account`
      */
-    function getCurrentVotes(address account) external view returns (uint256) {
+    function getCurrentVotes(address account) 
+        external 
+        view 
+        returns (uint256) 
+    {
         uint256 nCheckpoints = numCheckpoints[account];
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
     }
@@ -150,7 +185,11 @@ contract KeyfiToken  is Ownable {
      * @param blockNumber The block number to get the vote balance at
      * @return The number of votes the account had as of the given block
      */
-    function getPriorVotes(address account, uint256 blockNumber) public view returns (uint256) {
+    function getPriorVotes(address account, uint256 blockNumber) 
+        public 
+        view 
+        returns (uint256) 
+    {
         require(blockNumber < block.number, "KeyfiToken::getPriorVotes: not yet determined");
 
         uint256 nCheckpoints = numCheckpoints[account];
@@ -184,7 +223,9 @@ contract KeyfiToken  is Ownable {
         return checkpoints[account][lower].votes;
     }
 
-    function _delegate(address delegator, address delegatee) internal {
+    function _delegate(address delegator, address delegatee) 
+        internal 
+    {
         address currentDelegate = delegates[delegator];
         uint256 delegatorBalance = balances[delegator];
         delegates[delegator] = delegatee;
@@ -194,7 +235,9 @@ contract KeyfiToken  is Ownable {
         _moveDelegates(currentDelegate, delegatee, delegatorBalance);
     }
 
-    function _transferTokens(address src, address dst, uint256 amount) internal {
+    function _transferTokens(address src, address dst, uint256 amount) 
+        internal 
+    {
         require(src != address(0), "KeyfiToken::_transferTokens: cannot transfer from the zero address");
         require(dst != address(0), "KeyfiToken::_transferTokens: cannot transfer to the zero address");
 
@@ -205,7 +248,9 @@ contract KeyfiToken  is Ownable {
         _moveDelegates(delegates[src], delegates[dst], amount);
     }
 
-    function _moveDelegates(address srcRep, address dstRep, uint256 amount) internal {
+    function _moveDelegates(address srcRep, address dstRep, uint256 amount) 
+        internal 
+    {
         if (srcRep != dstRep && amount > 0) {
             if (srcRep != address(0)) {
                 uint256 srcRepNum = numCheckpoints[srcRep];
@@ -223,29 +268,43 @@ contract KeyfiToken  is Ownable {
         }
     }
 
-    function _writeCheckpoint(address delegatee, uint256 nCheckpoints, uint256 oldVotes, uint256 newVotes) internal {
-      if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == block.number) {
-          checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
-      } else {
-          checkpoints[delegatee][nCheckpoints] = Checkpoint(block.number, newVotes);
-          numCheckpoints[delegatee] = nCheckpoints + 1;
-      }
+    function _writeCheckpoint(address delegatee, uint256 nCheckpoints, uint256 oldVotes, uint256 newVotes) 
+        internal 
+    {
+        if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == block.number) {
+            checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
+        } else {
+            checkpoints[delegatee][nCheckpoints] = Checkpoint(block.number, newVotes);
+            numCheckpoints[delegatee] = nCheckpoints + 1;
+        }
 
-      emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
+        emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
     }
 
-    function add256(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+    function add256(uint256 a, uint256 b, string memory errorMessage) 
+        internal 
+        pure 
+        returns (uint256) 
+    {
         uint256 c = a + b;
         require(c >= a, errorMessage);
         return c;  
     }
 
-    function sub256(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+    function sub256(uint256 a, uint256 b, string memory errorMessage) 
+        internal 
+        pure 
+        returns (uint256) 
+    {
         require(b <= a, errorMessage);
         return a - b;
     }
 
-    function getChainId() internal pure returns (uint256) {
+    function getChainId() 
+        internal 
+        pure 
+        returns (uint256) 
+    {
         uint256 chainId;
         assembly { chainId := chainid() }
         return chainId;

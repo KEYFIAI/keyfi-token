@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./KeyfiToken.sol";
 //import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 
@@ -14,6 +15,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract RewardPool is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
+    using SafeERC20 for KeyfiToken;
 
     // Info of each user.
     struct UserInfo {
@@ -45,7 +47,7 @@ contract RewardPool is Ownable {
         bool added;
     }
 
-    IERC20 public rewardToken;
+    KeyfiToken public rewardToken;
 
     uint256 public bonusEndBlock;                   // Block number when bonus reward period ends
     uint256 public rewardPerBlock;                  // reward tokens distributed per block
@@ -64,7 +66,7 @@ contract RewardPool is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
     constructor(
-        IERC20 _rewardToken,
+        KeyfiToken _rewardToken,
         uint256 _rewardPerBlock,
         uint256 _startBlock,
         uint256 _bonusEndBlock
@@ -117,7 +119,7 @@ contract RewardPool is Ownable {
         massUpdateTokens();
         uint256 index = stakingTokenIndexes[address(_stakingToken)].index;
         delete(stakingTokenIndexes[address(_stakingToken)]);
-        stakingTokens[index] = stakingtokens[stakingTokens.length - 1];
+        stakingTokens[index] = stakingTokens[stakingTokens.length - 1];
         stakingTokens.pop();
 
         emit TokenRemoved(address(_stakingToken));
@@ -130,7 +132,7 @@ contract RewardPool is Ownable {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
 
         massUpdateTokens();
-        uint256 index = stakingTokenIndexes[address(_token)];
+        uint256 index = stakingTokenIndexes[address(_token)].index;
         totalAllocPoint = totalAllocPoint.sub(stakingTokens[index].allocPoint).add(_allocPoint);
         stakingTokens[index].allocPoint = _allocPoint;
     }
@@ -159,7 +161,7 @@ contract RewardPool is Ownable {
     {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
         
-        uint256 _pid = stakingTokenIndexes[address(_token)];
+        uint256 _pid = stakingTokenIndexes[address(_token)].index;
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accRewardPerShare = pool.accRewardPerShare;
@@ -215,7 +217,7 @@ contract RewardPool is Ownable {
     {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
         
-        uint256 _pid = stakingTokenIndexes[address(_token)];
+        uint256 _pid = stakingTokenIndexes[address(_token)].index;
         checkpoint(_pid);
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -236,7 +238,7 @@ contract RewardPool is Ownable {
     {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
         
-        uint256 _pid = stakingTokenIndexes[address(_token)];
+        uint256 _pid = stakingTokenIndexes[address(_token)].index;
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "invalid amount specified");
@@ -259,7 +261,7 @@ contract RewardPool is Ownable {
     {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
         
-        uint256 _pid = stakingTokenIndexes[address(_token)];
+        uint256 _pid = stakingTokenIndexes[address(_token)].index;
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         uint256 _amount = user.amount;
