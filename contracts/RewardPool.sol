@@ -57,6 +57,8 @@ contract RewardPool is Ownable {
     /* ----> */ uint256 public totalAllocPoint = 0;                                     // Total allocation points. Must be the sum of all allocation points in all pools
     uint256 public startBlock;                                              // The block number when rewards start
 
+    event TokenAdded(address indexed token, uint256 allocPoints);
+    event TokenRemoved(address indexed token);
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -81,7 +83,7 @@ contract RewardPool is Ownable {
         return stakingTokens.length;
     }
 
-    function add(uint256 _allocPoint, IERC20 _stakingToken) 
+    function addStakingToken(uint256 _allocPoint, IERC20 _stakingToken) 
         public 
         onlyOwner 
     {
@@ -99,18 +101,38 @@ contract RewardPool is Ownable {
         }));
 
         stakingTokenIndexes[address(_stakingToken)] = TokenIndex({
-            index: stakingTokens.lenght - 1,
+            index: stakingTokens.length - 1,
             added: true
         });
+
+        emit TokenAdded(address(_stakingToken), _allocPoint);
     }
 
-    function set(uint256 _pid, uint256 _allocPoint) 
+    function removeStakingToken(IERC20 _stakingToken) 
         public 
         onlyOwner 
     {
+        require(stakingTokenIndexes[address(_stakingToken)].added, "invalid token");
+        
         massUpdateTokens();
-        totalAllocPoint = totalAllocPoint.sub(stakingTokens[_pid].allocPoint).add(_allocPoint);
-        stakingTokens[_pid].allocPoint = _allocPoint;
+        uint256 index = stakingTokenIndexes[address(_stakingToken)].index;
+        delete(stakingTokenIndexes[address(_stakingToken)]);
+        stakingTokens[index] = stakingtokens[stakingTokens.length - 1];
+        stakingTokens.pop();
+
+        emit TokenRemoved(address(_stakingToken));
+    }
+
+    function set(IERC20 _token, uint256 _allocPoint) 
+        public 
+        onlyOwner 
+    {
+        require(stakingTokenIndexes[address(_token)].added, "invalid token");
+
+        massUpdateTokens();
+        uint256 index = stakingTokenIndexes[address(_token)];
+        totalAllocPoint = totalAllocPoint.sub(stakingTokens[index].allocPoint).add(_allocPoint);
+        stakingTokens[index].allocPoint = _allocPoint;
     }
 
     function getMultiplier(uint256 _from, uint256 _to) 
@@ -118,7 +140,7 @@ contract RewardPool is Ownable {
         view 
         returns (uint256) 
     {
-        _from=_from>=startBlock?_from:startBlock;       // check!
+        _from = _from >= startBlock? _from : startBlock;
         if (_to <= bonusEndBlock) {
             return _to.sub(_from).mul(BONUS_MULTIPLIER);
         } else if (_from >= bonusEndBlock) {
@@ -130,20 +152,25 @@ contract RewardPool is Ownable {
         }
     }
 
-    function pendingReward(uint256 _pid, address _user) 
+    function pendingReward(IERC20 _token, address _user) 
         external 
         view 
         returns (uint256) 
     {
+        require(stakingTokenIndexes[address(_token)].added, "invalid token");
+        
+        uint256 _pid = stakingTokenIndexes[address(_token)];
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accRewardPerShare = pool.accRewardPerShare;
-        uint256 tokenSupply = pool.stakingToken.balanceOf(address(this));       // not counting deposits. Anyone can send tokens and dilute everyone's share
+        uint256 tokenSupply = pool.stakingToken.balanceOf(address(this));   // <----- counting actual deposits. Anyone can send tokens and dilute everyone's share
+        
         if (block.number > pool.lastRewardBlock && tokenSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
             uint256 reward = multiplier.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
             accRewardPerShare = accRewardPerShare.add(reward.mul(1e12).div(tokenSupply));
         }
+
         return user.amount.mul(accRewardPerShare).div(1e12).sub(user.rewardDebt);
     }
 
@@ -159,15 +186,21 @@ contract RewardPool is Ownable {
     function checkpoint(uint256 _pid) 
         public 
     {
+        require(_pid < stakingTokens.length, "token index out of bounds");
+
         StakingToken storage pool = stakingTokens[_pid];
+        
         if (block.number <= pool.lastRewardBlock) {
             return;
         }
+
         uint256 stakedSupply = pool.stakingToken.balanceOf(address(this));
+
         if (stakedSupply == 0) {
             pool.lastRewardBlock = block.number;
             return;
         }
+
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 reward = multiplier.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
         
@@ -177,54 +210,72 @@ contract RewardPool is Ownable {
         pool.lastRewardBlock = block.number;
     }
 
-    function deposit(uint256 _pid, uint256 _amount) 
+    function deposit(IERC20 _token, uint256 _amount) 
         public 
     {
+        require(stakingTokenIndexes[address(_token)].added, "invalid token");
+        
+        uint256 _pid = stakingTokenIndexes[address(_token)];
+        
+        checkpoint(_pid);
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        checkpoint(_pid);
         user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
             if(pending > 0) {
                 safeRewardTransfer(msg.sender, pending);
             }
         }
+
         if(_amount > 0) {
             user.amount = user.amount.add(_amount);
             pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
         }
+
         emit Deposit(msg.sender, _pid, _amount);
     }
 
-    function withdraw(uint256 _pid, uint256 _amount) 
+    function withdraw(IERC20 _token, uint256 _amount) 
         public 
     {
+        require(stakingTokenIndexes[address(_token)].added, "invalid token");
+        
+        uint256 _pid = stakingTokenIndexes[address(_token)];
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "invalid amount specified");
         checkpoint(_pid);
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
         user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+
         if(pending > 0) {
             safeRewardTransfer(msg.sender, pending);
         }
+
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.stakingToken.safeTransfer(address(msg.sender), _amount);
         }
+
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
-    function emergencyWithdraw(uint256 _pid) 
+    function emergencyWithdraw(IERC20 _token) 
         public 
     {
+        require(stakingTokenIndexes[address(_token)].added, "invalid token");
+        
+        uint256 _pid = stakingTokenIndexes[address(_token)];
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         uint256 _amount = user.amount;
         user.amount = 0;
         user.rewardDebt = 0;
+
         pool.stakingToken.safeTransfer(address(msg.sender), _amount);
+        
         emit EmergencyWithdraw(msg.sender, _pid, _amount);
     }
 
