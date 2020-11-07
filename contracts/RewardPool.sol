@@ -32,25 +32,30 @@ contract RewardPool is Ownable {
         //   4. User's `rewardDebt` gets updated.
     }
 
-    // Info of each pool.
+    // Info of each staking token
     struct StakingToken {
-        IERC20 stakingToken;           // Address of LP token contract.
-        uint256 allocPoint;       // How many allocation points assigned to this pool. LOCKs to distribute per block.
-        uint256 lastRewardBlock;  // Last block number that reward distribution occurs.
-        uint256 accRewardPerShare;  // Accumulated reward per share, times 1e12. See below.
+        IERC20 stakingToken;            // Contract address of token to be staked
+        uint256 allocPoint;             // How many allocation points assigned to this token
+        uint256 lastRewardBlock;        // Last block number that reward distribution occurred
+        uint256 accRewardPerShare;      // Accumulated reward per share, times 1e12.
+    }
+
+    struct TokenIndex {
+        uint256 index;
+        bool added;
     }
 
     IERC20 public rewardToken;
-    uint256 public rewardDeposited; // reward deposited by contract owner. Reward tokens should NOT be sent directly to the contract
 
-    uint256 public bonusEndBlock;   // Block number when bonus reward period ends.
-    uint256 public rewardPerBlock;    // reward tokens created per block.
-    uint256 public constant BONUS_MULTIPLIER = 10;  // Bonus muliplier for early KEYFI makers.
+    uint256 public bonusEndBlock;                   // Block number when bonus reward period ends
+    uint256 public rewardPerBlock;                  // reward tokens distributed per block
+    uint256 public constant BONUS_MULTIPLIER = 2;  // Bonus muliplier for early users
 
-    StakingToken[] public stakingTokens;     // Info of each pool.
-    mapping (uint256 => mapping (address => UserInfo)) public userInfo;     // Info of each user that stakes LP tokens.
-    uint256 public totalAllocPoint = 0; // Total allocation poitns. Must be the sum of all allocation points in all pools.
-    uint256 public startBlock;  // The block number when KEYFI mining starts.
+    StakingToken[] public stakingTokens;                                    // Info of each pool
+    mapping(address => TokenIndex) public stakingTokenIndexes;
+    mapping (uint256 => mapping (address => UserInfo)) public userInfo;     // Info of each user that stakes tokens
+    /* ----> */ uint256 public totalAllocPoint = 0;                                     // Total allocation points. Must be the sum of all allocation points in all pools
+    uint256 public startBlock;                                              // The block number when rewards start
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -80,7 +85,9 @@ contract RewardPool is Ownable {
         public 
         onlyOwner 
     {
-        require(address(_stakingToken) != address(rewardToken), "cannot add reward token as staking token");
+        /* ---> */ require(address(_stakingToken) != address(rewardToken), "cannot add reward token as staking token");
+        require(!stakingTokenIndexes[address(_stakingToken)].added, "staking token already exists in array");
+
         massUpdateTokens();
         uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
         totalAllocPoint = totalAllocPoint.add(_allocPoint);
@@ -90,6 +97,11 @@ contract RewardPool is Ownable {
             lastRewardBlock: lastRewardBlock,
             accRewardPerShare: 0
         }));
+
+        stakingTokenIndexes[address(_stakingToken)] = TokenIndex({
+            index: stakingTokens.lenght - 1,
+            added: true
+        });
     }
 
     function set(uint256 _pid, uint256 _allocPoint) 
@@ -106,6 +118,7 @@ contract RewardPool is Ownable {
         view 
         returns (uint256) 
     {
+        _from=_from>=startBlock?_from:startBlock;       // check!
         if (_to <= bonusEndBlock) {
             return _to.sub(_from).mul(BONUS_MULTIPLIER);
         } else if (_from >= bonusEndBlock) {
@@ -125,7 +138,7 @@ contract RewardPool is Ownable {
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accRewardPerShare = pool.accRewardPerShare;
-        uint256 tokenSupply = pool.stakingToken.balanceOf(address(this));
+        uint256 tokenSupply = pool.stakingToken.balanceOf(address(this));       // not counting deposits. Anyone can send tokens and dilute everyone's share
         if (block.number > pool.lastRewardBlock && tokenSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
             uint256 reward = multiplier.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
@@ -170,6 +183,7 @@ contract RewardPool is Ownable {
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         checkpoint(_pid);
+        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
             if(pending > 0) {
@@ -177,10 +191,9 @@ contract RewardPool is Ownable {
             }
         }
         if(_amount > 0) {
-            pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
             user.amount = user.amount.add(_amount);
+            pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -192,6 +205,7 @@ contract RewardPool is Ownable {
         require(user.amount >= _amount, "invalid amount specified");
         checkpoint(_pid);
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
+        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
         if(pending > 0) {
             safeRewardTransfer(msg.sender, pending);
         }
@@ -199,7 +213,6 @@ contract RewardPool is Ownable {
             user.amount = user.amount.sub(_amount);
             pool.stakingToken.safeTransfer(address(msg.sender), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -208,10 +221,11 @@ contract RewardPool is Ownable {
     {
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        pool.stakingToken.safeTransfer(address(msg.sender), user.amount);
-        emit EmergencyWithdraw(msg.sender, _pid, user.amount);
+        uint256 _amount = user.amount;
         user.amount = 0;
         user.rewardDebt = 0;
+        pool.stakingToken.safeTransfer(address(msg.sender), _amount);
+        emit EmergencyWithdraw(msg.sender, _pid, _amount);
     }
 
     function safeRewardTransfer(address _to, uint256 _amount) 
