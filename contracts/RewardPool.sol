@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./KeyfiToken.sol";
+//import "./KeyfiToken.sol";
 //import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 
@@ -15,7 +15,6 @@ import "./KeyfiToken.sol";
 contract RewardPool is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
-    using SafeERC20 for KeyfiToken;
 
     // Info of each user.
     struct UserInfo {
@@ -47,11 +46,11 @@ contract RewardPool is Ownable {
         bool added;
     }
 
-    KeyfiToken public rewardToken;
+    IERC20 public rewardToken;
 
     uint256 public bonusEndBlock;                   // Block number when bonus reward period ends
     uint256 public rewardPerBlock;                  // reward tokens distributed per block
-    uint256 public constant BONUS_MULTIPLIER = 2;  // Bonus muliplier for early users
+    uint256 public bonusMultiplier = 2;  // Bonus muliplier for early users
 
     StakingToken[] public stakingTokens;                                    // Info of each pool
     mapping(address => TokenIndex) public stakingTokenIndexes;
@@ -66,15 +65,17 @@ contract RewardPool is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
     constructor(
-        KeyfiToken _rewardToken,
+        IERC20 _rewardToken,
         uint256 _rewardPerBlock,
         uint256 _startBlock,
-        uint256 _bonusEndBlock
+        uint256 _bonusEndBlock,
+        uint8 _bonusMultiplier
     ) public {
         rewardToken = _rewardToken;
         rewardPerBlock = _rewardPerBlock;
         bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
+        bonusMultiplier = _bonusMultiplier;
     }
 
     function stakingTokensCount() 
@@ -144,11 +145,11 @@ contract RewardPool is Ownable {
     {
         _from = _from >= startBlock? _from : startBlock;
         if (_to <= bonusEndBlock) {
-            return _to.sub(_from).mul(BONUS_MULTIPLIER);
+            return _to.sub(_from).mul(bonusMultiplier);
         } else if (_from >= bonusEndBlock) {
             return _to.sub(_from);
         } else {
-            return bonusEndBlock.sub(_from).mul(BONUS_MULTIPLIER).add(
+            return bonusEndBlock.sub(_from).mul(bonusMultiplier).add(
                 _to.sub(bonusEndBlock)
             );
         }
@@ -215,7 +216,7 @@ contract RewardPool is Ownable {
     function deposit(IERC20 _token, uint256 _amount) 
         public 
     {
-        require(stakingTokenIndexes[address(_token)].added, "invalid token");
+        /*require(stakingTokenIndexes[address(_token)].added, "invalid token");
         
         uint256 _pid = stakingTokenIndexes[address(_token)].index;
         checkpoint(_pid);
@@ -230,6 +231,23 @@ contract RewardPool is Ownable {
             pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
         }
 
+        emit Deposit(msg.sender, _pid, _amount);*/
+
+        uint256 _pid = stakingTokenIndexes[address(_token)].index;
+        StakingToken storage pool = stakingTokens[_pid];
+        UserInfo storage user = userInfo[_pid][msg.sender];
+        checkpoint(_pid);
+        if (user.amount > 0) {
+            uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
+            if(pending > 0) {
+                safeRewardTransfer(msg.sender, pending);
+            }
+        }
+        if(_amount > 0) {
+            pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
+            user.amount = user.amount.add(_amount);
+        }
+        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
     }
 

@@ -7,18 +7,18 @@ const KeyfiTokenFactory = artifacts.require('KeyfiTokenFactory.sol');
 
 contract('KeyfiTokenFactory', ([minter, team, community, bob]) => {
   beforeEach(async () => {
-    this.factory = await KeyfiTokenFactory.new(team, community, 0);
+    this.factory = await KeyfiTokenFactory.new(team, community, 0, 0);
   });
 
-  it('should deploy all contracts successfully', async () => {
+  xit('should deploy all contracts successfully', async () => {
     // ????
   });
 
-  it('should transfer contract ownership correctly', async () => {
+  xit('should transfer contract ownership correctly', async () => {
     
   })
 
-  it('should allocate tokens correctly', async () => {
+  xit('should allocate tokens correctly', async () => {
 
   })  
 });
