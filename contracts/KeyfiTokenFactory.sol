@@ -14,14 +14,12 @@ contract KeyfiTokenFactory {
     uint256 constant INITIAL_SUPPLY = 10000000e18;   // 10,000,000 initial supply
     uint256 constant REWARD_RATE = 700000000000000000;      // 0.7 per block
     uint256 constant BONUS_BLOCKS = 390000;                 // approx. 2 months
-    uint8 constant BONUS_MULTIPLIER = 2;
+    uint256 constant BONUS_MULTIPLIER = 2;
 
     KeyfiToken public token;    
     RewardPool public pool;
     TokenTimelock public teamTimelock;
     TokenTimelock public communityTimelock;
-
-    event KeyfiTokenFactoryDeployed(address tokenAddress, address rewardPoolAddress);
 
     /**
      * @dev Auxiliary contract that deploys and initializes token and reward contracts.
@@ -34,12 +32,14 @@ contract KeyfiTokenFactory {
     constructor(
         address team, 
         address community,
-        address rewardPool,
+        uint256 startBlock,
         uint256 timelockPeriod
     ) 
         public
     {
+        uint256 bonusPeriod = startBlock + BONUS_BLOCKS;
         token = new KeyfiToken();
+        pool = new RewardPool(token, REWARD_RATE, startBlock, bonusPeriod, BONUS_MULTIPLIER);
 
         token.mint(address(this), INITIAL_SUPPLY);
         
@@ -47,12 +47,10 @@ contract KeyfiTokenFactory {
         communityTimelock = new TokenTimelock(token, community, now + timelockPeriod + 1);
 
         // initial token allocation
-        token.safeTransfer(address(rewardPool), 5000000e18);
+        token.safeTransfer(address(pool), 5000000e18);
         token.safeTransfer(address(teamTimelock), 2500000e18);
         token.safeTransfer(address(communityTimelock), 2500000e18);
 
         token.transferOwnership(community);
-
-        emit KeyfiTokenFactoryDeployed(address(token), address(rewardPool));
     }
 }

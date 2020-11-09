@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-//import "./KeyfiToken.sol";
+import "./KeyfiToken.sol";
 //import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
  /**
@@ -15,6 +15,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract RewardPool is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
+    using SafeERC20 for KeyfiToken;
 
     // Info of each user.
     struct UserInfo {
@@ -46,7 +47,7 @@ contract RewardPool is Ownable {
         bool added;
     }
 
-    IERC20 public rewardToken;
+    KeyfiToken public rewardToken;
 
     uint256 public bonusEndBlock;                   // Block number when bonus reward period ends
     uint256 public rewardPerBlock;                  // reward tokens distributed per block
@@ -65,12 +66,14 @@ contract RewardPool is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
     constructor(
-        IERC20 _rewardToken,
+        KeyfiToken _rewardToken,
         uint256 _rewardPerBlock,
         uint256 _startBlock,
         uint256 _bonusEndBlock,
-        uint8 _bonusMultiplier
-    ) public {
+        uint256 _bonusMultiplier
+    ) 
+        public 
+    {
         rewardToken = _rewardToken;
         rewardPerBlock = _rewardPerBlock;
         bonusEndBlock = _bonusEndBlock;
