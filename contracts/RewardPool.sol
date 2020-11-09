@@ -8,9 +8,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 //import "./KeyfiToken.sol";
 //import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
-
-/**  
- * Implementation of Reward logic for KEYFI token, based on SushiSwap's staking contract
+ /**
+ * @title RewardPool
+ * @dev Implementation of Reward logic for KEYFI token, based on SushiSwap's MasterChef.
  */
 contract RewardPool is Ownable {
     using SafeMath for uint256;
@@ -55,7 +55,7 @@ contract RewardPool is Ownable {
     StakingToken[] public stakingTokens;                                    // Info of each pool
     mapping(address => TokenIndex) public stakingTokenIndexes;
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;     // Info of each user that stakes tokens
-    /* ----> */ uint256 public totalAllocPoint = 0;                                     // Total allocation points. Must be the sum of all allocation points in all pools
+    uint256 public totalAllocPoint = 0;                                     // Total allocation points. Must be the sum of all allocation points in all pools
     uint256 public startBlock;                                              // The block number when rewards start
 
     event TokenAdded(address indexed token, uint256 allocPoints);
@@ -86,11 +86,18 @@ contract RewardPool is Ownable {
         return stakingTokens.length;
     }
 
+    /**
+     * @dev adds a token to the list of allowed staking tokens
+     * @param _allocPoint — The "weight" of this token in relation to other allowed tokens.
+     * @param _stakingtoken — The token to be added.
+     */
     function addStakingToken(uint256 _allocPoint, IERC20 _stakingToken) 
         public 
         onlyOwner 
     {
-        /* ---> */ require(address(_stakingToken) != address(rewardToken), "cannot add reward token as staking token");
+        // since owner is able to arbitrarily withdraw reward tokens from the contract
+        // it doesn't allow using the same reward token as a staking token
+        require(address(_stakingToken) != address(rewardToken), "cannot add reward token as staking token");
         require(!stakingTokenIndexes[address(_stakingToken)].added, "staking token already exists in array");
 
         massUpdateTokens();
@@ -111,6 +118,10 @@ contract RewardPool is Ownable {
         emit TokenAdded(address(_stakingToken), _allocPoint);
     }
 
+    /**
+     * @dev removes a staking token from the list of allowed tokens
+     * @param _stakingtoken — The token to be removed.
+     */
     function removeStakingToken(IERC20 _stakingToken) 
         public 
         onlyOwner 
@@ -126,11 +137,17 @@ contract RewardPool is Ownable {
         emit TokenRemoved(address(_stakingToken));
     }
 
+    /**
+     * @dev changes the weight allocation for a particular token
+     * @param _token — The token to be configured.
+     * @param _allocPoint — The allocation points set to this token
+     */
     function set(IERC20 _token, uint256 _allocPoint) 
         public 
         onlyOwner 
     {
-        require(stakingTokenIndexes[address(_token)].added, "invalid token");
+        require(stakingTokenIndexes[address(_token)].added, "token does not exist in list");
+        require(_allocPoint > 0, "allocation points must be greater than zero");
 
         massUpdateTokens();
         uint256 index = stakingTokenIndexes[address(_token)].index;
@@ -138,6 +155,11 @@ contract RewardPool is Ownable {
         stakingTokens[index].allocPoint = _allocPoint;
     }
 
+    /**
+     * @dev gets multiplier factor for possible bonuses within any given period
+     * @param _from — starting block
+     * @param _to — last block of the period
+     */
     function getMultiplier(uint256 _from, uint256 _to) 
         public 
         view 
@@ -155,6 +177,11 @@ contract RewardPool is Ownable {
         }
     }
 
+    /**
+     * @dev calculates pending reward for a given staking token and a user
+     * @param _token — The staking token
+     * @param _user — The stakeholder 
+     */
     function pendingReward(IERC20 _token, address _user) 
         external 
         view 
@@ -177,6 +204,9 @@ contract RewardPool is Ownable {
         return user.amount.mul(accRewardPerShare).div(1e12).sub(user.rewardDebt);
     }
 
+    /**
+     * @dev invokes a checkpoint update on all staking tokens in the list
+     */
     function massUpdateTokens() 
         public 
     {
@@ -186,6 +216,11 @@ contract RewardPool is Ownable {
         }
     }
 
+    /**
+     * @dev Calculates all reward rates for all staking tokens since last checkpoint. 
+     * Should be called before any balance-changing operations (e.g. deposit, withdraw)
+     * @param _pid — The index of the token in the array of staking tokens
+     */
     function checkpoint(uint256 _pid) 
         public 
     {
@@ -213,6 +248,11 @@ contract RewardPool is Ownable {
         pool.lastRewardBlock = block.number;
     }
 
+    /**
+     * @dev deposit _amount into a given _token pool
+     * @param _token — The staking token to be deposited
+     * @param _amount — The amount of tokens to be staked
+     */
     function deposit(IERC20 _token, uint256 _amount) 
         public 
     {
@@ -234,6 +274,11 @@ contract RewardPool is Ownable {
         emit Deposit(msg.sender, _pid, _amount);
     }
 
+    /**
+     * @dev withdraw _amount of a given staking token
+     * @param _token — The staking token to be withdrawn
+     * @param _amount — The amount of tokens to withdraw
+     */
     function withdraw(IERC20 _token, uint256 _amount) 
         public 
     {
@@ -257,6 +302,11 @@ contract RewardPool is Ownable {
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
+    /**
+     * @dev withdraw all staked funds of a given token, regardless of reward logic
+     * To be used in an emergency case if reward logic fails and tokens would get locked otherwise
+     * @param _token — The staking token to withdraw funds from
+     */
     function emergencyWithdraw(IERC20 _token) 
         public 
     {
@@ -274,6 +324,13 @@ contract RewardPool is Ownable {
         emit EmergencyWithdraw(msg.sender, _pid, _amount);
     }
 
+    /**
+     * @dev Internal function to send rewards while checking for potential imbalances
+     * Note: if available reward is less than calculated amount, reward will still take place
+     * And pending reward calculations might 
+     * @param _to — the target address of the reward
+     * @param _amount — the amount of reward to transfer
+     */
     function safeRewardTransfer(address _to, uint256 _amount) 
         internal 
     {
@@ -287,6 +344,10 @@ contract RewardPool is Ownable {
         }
     }
 
+    /**
+     * @dev Calculate remaining blocks left according to current reward supply and rate
+     * Useful for contract owner to either re-supply or migrate to an alternate reward solution
+     */
     function rewardBlocksLeft() 
         public
         view
@@ -296,10 +357,17 @@ contract RewardPool is Ownable {
         return balance.div(rewardPerBlock);
     }
 
+    /**
+     * @dev Allows owner to withdraw any amount of reward tokens. Useful if needed to migrate to
+     * an updated version of the reward pool.
+     * Note: To avoid potential stealing of staked funds. Reward token is not allowed to be added
+     * as a staking token.
+     * @param amount — The amount of tokens to be withdrawn
+     */
     function adminWithdrawReward(uint256 amount)
         public
         onlyOwner
     {
-        rewardToken.safeTransfer(msg.sender, amount);
+        rewardToken.safeTransfer(msg.sender, amount);       
     }
 }
