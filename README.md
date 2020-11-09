@@ -2,7 +2,7 @@
 
 Smart contracts implementing KeyFi token economics backend.
 
-## Smart contract Overview 
+## Smart Contract Overview 
 
 This repository contains the smart contracts that implement the KEYFI token and its distribution mechanism, based on staking LP tokens. The following contracts are provided:
 
