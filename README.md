@@ -1,10 +1,36 @@
 # keyfi-token
 
-Smart contracts implementing Keyfi token economics backend.
+Smart contracts implementing KeyFi token economics backend.
 
-<!--## Overview 
-...
--->
+## Smart contract Overview 
+
+This repository contains the smart contracts that implement the KEYFI token and its distribution mechanism, based on staking LP tokens. The following contracts are provided:
+
+### KeyfiToken.sol
+
+`KeyfiToken` is an ERC20-compatible token contract, with minting functionality and vote delegation (based on Compound governance token). Only the contract owner is able to mint additional tokens. The ownership of the token is planned to be held by a community-controlled governance contract.
+
+A governance contract such as Compound's "Governor Alpha" or a variation of it is planned to be introduced in next stages of development.
+
+### RewardPool.sol
+
+`RewardPool` is the main mechanism for distributing KEYFI, by means of allocating tokens to a configurable set of "staking tokens" (e.g. Uniswap LP tokens). As the token, the Reward Pool contract is also `Ownable` and meant to be controlled by community governance.
+
+The contract is based on SushiSwap's `MasterChef` contract, with a few changes:
+
+* It doesn't mint new tokens, the reward tokens need to be previously minted and deposited to the contract
+* It includes management functions such as `removeStakingToken` and `adminWithdrawReward`
+* All method interfaces receive a token address instead of a numeric "pid". Token index (pid) is still used to loop through tokens internally
+
+A number of tokens is allocated each block, divided among all the different staking tokens or "pools". Each stakeholder should receive rewards according to their share of the pool stake. A bonus period is optionally set at deployment time, with a multiplier for rewards in said period.
+
+### KeyfiTokenFactory.sol
+
+KeyfiTokenFactory is the deployer and initializer of the token and reward contracts. It's meant to implement the initial token distribution and transfer ownership of both contracts to the governance contract. The factory contract also deploys any token timelocks defined by KeyFi's initial distribution scheme.
+
+### MultisigTimelock.sol
+
+A simple multisig timelock contract (based on DDEX's `MultiSigWalletWithTimelock`) is provided in order to act as the "admin key" of relevant ownable contracts. This is meant to be substituted by a proper community voting contract in next stages.
 
 ## Development
 

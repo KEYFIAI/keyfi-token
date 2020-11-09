@@ -22,6 +22,15 @@ contract KeyfiTokenFactory {
 
     event KeyfiTokenFactoryDeployed(address tokenAddress, address rewardPoolAddress);
 
+    /**
+     * @dev Auxiliary contract that deploys and initializes token and reward contracts.
+     * Implements a given initial distribution schemen and automatically transfers ownership 
+     * of token and reward contracts to a governance address
+     * @param team — An wallet address corresponding to the KeyFi team
+     * @param community — An address corresponding to the community. e.g. a DAO contract
+     * @param startBlock — RewardPookl starting block
+     * @param timelockPeriod — Timelock period for tokens vested over time
+     */
     constructor(
         address team, 
         address community,
