@@ -24,13 +24,17 @@ The contract is based on SushiSwap's `MasterChef` contract, with a few changes:
 
 A number of tokens is allocated each block, divided among all the different staking tokens or "pools". Each stakeholder should receive rewards according to their share of the pool stake. A bonus period is optionally set at deployment time, with a multiplier for rewards in said period.
 
+Token rewards are automatically withdrawn on each call to `deposit` and `withdraw` functions. These can be used with `amount = 0` in order to only withdraw the rewards.
+
+**Note**: Reward pool doesn't mint tokens in order to distribute rewards, therefore it must _always_ hold enough reward funds. Contract owners should either re-supply or migrate to an alternate reward contract when the supply is about to end. Querying `rewardBlocksLeft` function is useful for this matter.
+
 ### KeyfiTokenFactory.sol
 
 KeyfiTokenFactory is the deployer and initializer of the token and reward contracts. It's meant to implement the initial token distribution and transfer ownership of both contracts to the governance contract. The factory contract also deploys any token timelocks defined by KeyFi's initial distribution scheme.
 
 ### MultisigTimelock.sol
 
-A simple multisig timelock contract (based on DDEX's `MultiSigWalletWithTimelock`) is provided in order to act as the "admin key" of relevant ownable contracts. This is meant to be substituted by a proper community voting contract in next stages.
+A simple multisig timelock contract (based on DDEX's `MultiSigWalletWithTimelock`) is provided in order to act as the "admin key" of relevant ownable contracts provisionally. This is meant to be substituted by a proper community voting contract such as Compound's "Governor Alpha" in the next stages.
 
 ## Development
 
