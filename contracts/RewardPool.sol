@@ -216,7 +216,7 @@ contract RewardPool is Ownable {
     function deposit(IERC20 _token, uint256 _amount) 
         public 
     {
-        /*require(stakingTokenIndexes[address(_token)].added, "invalid token");
+        require(stakingTokenIndexes[address(_token)].added, "invalid token");
         
         uint256 _pid = stakingTokenIndexes[address(_token)].index;
         checkpoint(_pid);
@@ -231,23 +231,6 @@ contract RewardPool is Ownable {
             pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
         }
 
-        emit Deposit(msg.sender, _pid, _amount);*/
-
-        uint256 _pid = stakingTokenIndexes[address(_token)].index;
-        StakingToken storage pool = stakingTokens[_pid];
-        UserInfo storage user = userInfo[_pid][msg.sender];
-        checkpoint(_pid);
-        if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
-            if(pending > 0) {
-                safeRewardTransfer(msg.sender, pending);
-            }
-        }
-        if(_amount > 0) {
-            pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
-            user.amount = user.amount.add(_amount);
-        }
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -312,4 +295,6 @@ contract RewardPool is Ownable {
         uint256 balance = rewardToken.balanceOf(address(this));
         return balance.div(rewardPerBlock);
     }
+
+    // Add withdrawAdmin!!!!!
 }
