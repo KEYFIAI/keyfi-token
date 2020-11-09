@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.4.22 <0.8.0;
+pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -89,7 +89,7 @@ contract RewardPool is Ownable {
     /**
      * @dev adds a token to the list of allowed staking tokens
      * @param _allocPoint — The "weight" of this token in relation to other allowed tokens.
-     * @param _stakingtoken — The token to be added.
+     * @param _stakingToken — The token to be added.
      */
     function addStakingToken(uint256 _allocPoint, IERC20 _stakingToken) 
         public 
@@ -120,7 +120,7 @@ contract RewardPool is Ownable {
 
     /**
      * @dev removes a staking token from the list of allowed tokens
-     * @param _stakingtoken — The token to be removed.
+     * @param _stakingToken — The token to be removed.
      */
     function removeStakingToken(IERC20 _stakingToken) 
         public 
