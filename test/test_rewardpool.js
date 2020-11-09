@@ -4,7 +4,7 @@ const RewardPool = artifacts.require('./RewardPool.sol');
 const MockERC20 = artifacts.require('MockERC20');
 const KeyfiToken = artifacts.require('KeyfiToken.sol');
 
-contract('RewardPool', ([alice, bob, carol, minter]) => {
+contract('RewardPool', ([alice, bob, carol, minter, community]) => {
   beforeEach(async () => {
     this.keyfi = await KeyfiToken.new({ from: minter });
   });
@@ -39,6 +39,14 @@ contract('RewardPool', ([alice, bob, carol, minter]) => {
       assert.equal((await this.lp.balanceOf(bob)).valueOf(), '900');
       await this.staking.emergencyWithdraw(this.lp.address, { from: bob });
       assert.equal((await this.lp.balanceOf(bob)).valueOf(), '1000');
+    });
+
+    it('should allow owner to withdraw reward tokens', async () => {
+      this.staking = await RewardPool.new(this.keyfi.address, '100', '100', '1000', 10, { from: alice });
+      await this.keyfi.mint(this.staking.address, "10000000", { from: minter })
+      await this.staking.transferOwnership(community, { from: alice });
+      await this.staking.adminWithdrawReward('2000', { from: community });
+      assert.equal((await this.keyfi.balanceOf(community)).valueOf(), '2000');
     });
 
     it('should give out rewards only after farming time', async () => {

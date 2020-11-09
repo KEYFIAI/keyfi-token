@@ -296,5 +296,10 @@ contract RewardPool is Ownable {
         return balance.div(rewardPerBlock);
     }
 
-    // Add withdrawAdmin!!!!!
+    function adminWithdrawReward(uint256 amount)
+        public
+        onlyOwner
+    {
+        rewardToken.safeTransfer(msg.sender, amount);
+    }
 }
