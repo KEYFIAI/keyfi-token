@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./KeyfiToken.sol";
+import "./Whitelist.sol";
 //import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
  /**
@@ -72,7 +73,7 @@ contract RewardPool is Ownable {
         uint256 _startBlock,
         uint256 _bonusEndBlock,
         uint256 _bonusMultiplier,
-        Whitelist _whitelist,
+        Whitelist _whitelist
     ) 
         public 
     {
@@ -267,7 +268,7 @@ contract RewardPool is Ownable {
         public 
     {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
-        require(whitelist.isWhitelisted(msg.sender), "sender address is not eligible")
+        require(whitelist.isWhitelisted(msg.sender), "sender address is not eligible");
         
         uint256 _pid = stakingTokenIndexes[address(_token)].index;
         checkpoint(_pid);

@@ -2,6 +2,7 @@
 pragma solidity ^0.6.0;
 
 import "./KeyfiToken.sol";
+import "./Whitelist.sol";
 import "./RewardPool.sol";
 import "@openzeppelin/contracts/token/ERC20/TokenTimelock.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -29,7 +30,7 @@ contract KeyfiTokenFactory {
     constructor(
         address team, 
         address _community,
-        address airdrop
+        address airdrop        
     ) 
         public
     {
@@ -55,10 +56,10 @@ contract KeyfiTokenFactory {
         token.transferOwnership(community);
     }
 
-    function deployRewardPool() public returns (address) {
+    function deployRewardPool(Whitelist _whitelist) public returns (address) {
         require(address(pool) == address(0), "Pool was already deployed");
         
-        pool = new RewardPool(token, 700000000000000000, 0, 0, 2);
+        pool = new RewardPool(token, 700000000000000000, 0, 0, 2, _whitelist);
         token.safeTransfer(address(pool), 6250000e18);
         pool.transferOwnership(community);
 

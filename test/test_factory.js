@@ -8,7 +8,7 @@ const TokenTimelock = artifacts.require('TokenTimelock.sol')
 
 contract('KeyfiTokenFactory', ([minter, team, community, pool, airdrop, bob]) => {
   before(async () => {
-    this.factory = await KeyfiTokenFactory.new(team, community, airdrop, { from: minter })
+    //this.factory = await KeyfiTokenFactory.new(team, community, airdrop, { from: minter })
     /*let tokenAddress = await this.factory.token()
     assert.notEqual(tokenAddress, constants.ZERO_ADDRESS)
     this.token = await KeyfiToken.at(tokenAddress)
