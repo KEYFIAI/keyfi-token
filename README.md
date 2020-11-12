@@ -30,7 +30,7 @@ Token rewards are automatically withdrawn on each call to `deposit` and `withdra
 
 ### KeyfiTokenFactory.sol
 
-KeyfiTokenFactory is the deployer and initializer of the token contracts. It implements the initial token distribution and transfers ownership of both contract to a proper admin key contract. The factory contract also deploys a set of token timelocks as initially determined by the initial distribution scheme defined by the KeyFi team.
+KeyfiTokenFactory is the deployer and initializer of the token and reward contracts. It implements the initial token distribution and transfers ownership of both contracts to a proper admin. The factory contract also deploys a set of token timelocks as initially determined by the initial distribution scheme defined by the KeyFi team.
 
 ### MultisigTimelock.sol
 
