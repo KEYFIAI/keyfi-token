@@ -2,7 +2,6 @@
 pragma solidity ^0.6.0;
 
 import "./KeyfiToken.sol";
-//import "./MultisigTimelock.sol";
 import "./RewardPool.sol";
 import "@openzeppelin/contracts/token/ERC20/TokenTimelock.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -11,46 +10,58 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract KeyfiTokenFactory {
     using SafeERC20 for KeyfiToken;
 
-    uint256 constant INITIAL_SUPPLY = 10000000e18;   // 10,000,000 initial supply
-    uint256 constant REWARD_RATE = 700000000000000000;      // 0.7 per block
-    uint256 constant BONUS_BLOCKS = 390000;                 // approx. 2 months
-    uint256 constant BONUS_MULTIPLIER = 2;
-
     KeyfiToken public token;    
     RewardPool public pool;
-    TokenTimelock public teamTimelock;
-    TokenTimelock public communityTimelock;
+    address public community;
 
+    TokenTimelock public teamTimelock1;
+    TokenTimelock public teamTimelock2;
+    TokenTimelock public teamTimelock3;
+    TokenTimelock public teamTimelock4;
+
+    event RewardPoolDeployed(address pool, address owner);
+    
     /**
      * @dev Auxiliary contract that deploys and initializes token and reward contracts.
      * Implements a given initial distribution schemen and automatically transfers ownership 
      * of token and reward contracts to a governance address
-     * @param team — An wallet address corresponding to the KeyFi team
-     * @param community — An address corresponding to the community. e.g. a DAO contract
-     * @param timelockPeriod — Timelock period for tokens vested over time
      */
     constructor(
         address team, 
-        address community,
-        uint256 startBlock,
-        uint256 timelockPeriod
+        address _community,
+        address airdrop
     ) 
         public
     {
-        uint256 bonusPeriod = startBlock + BONUS_BLOCKS;
         token = new KeyfiToken();
-        pool = new RewardPool(token, REWARD_RATE, startBlock, bonusPeriod, BONUS_MULTIPLIER);
+        community = _community;
 
-        token.mint(address(this), INITIAL_SUPPLY);
-        
-        teamTimelock = new TokenTimelock(token, team, now + timelockPeriod + 1);
-        communityTimelock = new TokenTimelock(token, community, now + timelockPeriod + 1);
+        token.mint(address(this), 10000000e18);
+
+        uint256 month = 30 days;
+        teamTimelock1 = new TokenTimelock(token, team, now + month * 3);
+        teamTimelock2 = new TokenTimelock(token, team, now + month * 6);
+        teamTimelock3 = new TokenTimelock(token, team, now + month * 9);
+        teamTimelock4 = new TokenTimelock(token, team, now + month * 12);
 
         // initial token allocation
-        token.safeTransfer(address(pool), 5000000e18);
-        token.safeTransfer(address(teamTimelock), 2500000e18);
-        token.safeTransfer(address(communityTimelock), 2500000e18);
-
+        token.safeTransfer(team, 400000e18);
+        token.safeTransfer(address(teamTimelock1), 400000e18);
+        token.safeTransfer(address(teamTimelock2), 400000e18);
+        token.safeTransfer(address(teamTimelock3), 400000e18);
+        token.safeTransfer(address(teamTimelock4), 400000e18);
+        token.safeTransfer(airdrop, 250000e18);
+        
         token.transferOwnership(community);
+    }
+
+    function deployRewardPool() public returns (address) {
+        require(address(pool) == address(0), "Pool was already deployed");
+        
+        pool = new RewardPool(token, 700000000000000000, 0, 0, 2);
+        token.safeTransfer(address(pool), 6250000e18);
+        pool.transferOwnership(community);
+
+        emit RewardPoolDeployed(address(pool), pool.owner());
     }
 }
