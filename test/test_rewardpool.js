@@ -204,5 +204,33 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
       assert.equal((await this.staking.pendingReward(this.lp.address, alice)).valueOf(), '0');
       assert.equal((await this.keyfi.balanceOf(alice)).valueOf(), '10600');
     });
+
+    it('should allow setting allocpoint = 0 for disabling a staking token', async () => {
+      this.staking = await RewardPool.new(this.keyfi.address, '100', '500', '600', 10, this.whitelist.address, { from: alice });
+      await this.keyfi.mint(this.staking.address, "10000000", { from: minter })
+      //await this.keyfi.transferOwnership(this.staking.address, { from: minter });
+      await this.lp.approve(this.staking.address, '1000', { from: alice });
+      await this.staking.addStakingToken('1', this.lp.address);
+      // Alice deposits 10 LPs at block 590
+      await time.advanceBlockTo('700');
+      await this.staking.deposit(this.lp.address, '10', { from: alice });
+      // At block 605, she should have 1000*10 + 100*5 = 10500 pending.
+      await time.advanceBlockTo('800');
+      await this.staking.set(this.lp.address, '0')
+      let pending1 = await this.staking.pendingReward(this.lp.address, alice)
+      await time.advanceBlockTo('900');
+      let pending2 = await this.staking.pendingReward(this.lp.address, alice)
+      assert.equal(Number(pending1), Number(pending2))
+
+      let balance1 = await this.keyfi.balanceOf(alice)
+      await this.staking.deposit(this.lp.address, 0, { from: alice });
+      let balance2 = await this.keyfi.balanceOf(alice)
+      assert.isAbove(Number(balance2), Number(balance1))
+      
+      await time.advanceBlockTo('2000')
+      await this.staking.deposit(this.lp.address, 0, { from: alice });
+      let balance3 = await this.keyfi.balanceOf(alice)
+      assert.equal(Number(balance2), Number(balance3))
+    })
   });
 });

@@ -129,7 +129,7 @@ contract RewardPool is Ownable {
      * @dev removes a staking token from the list of allowed tokens
      * @param _stakingToken — The token to be removed.
      */
-    function removeStakingToken(IERC20 _stakingToken) 
+    /*function removeStakingToken(IERC20 _stakingToken) 
         public 
         onlyOwner 
     {
@@ -142,7 +142,7 @@ contract RewardPool is Ownable {
         stakingTokens.pop();
 
         emit TokenRemoved(address(_stakingToken));
-    }
+    }*/
 
     /**
      * @dev changes the weight allocation for a particular token
@@ -154,7 +154,7 @@ contract RewardPool is Ownable {
         onlyOwner 
     {
         require(stakingTokenIndexes[address(_token)].added, "token does not exist in list");
-        require(_allocPoint > 0, "allocation points must be greater than zero");
+        //require(_allocPoint > 0, "allocation points must be greater than zero");
 
         massUpdateTokens();
         uint256 index = stakingTokenIndexes[address(_token)].index;
@@ -196,19 +196,18 @@ contract RewardPool is Ownable {
     {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
 
-        if(!whitelist.isWhitelisted(_user)) {
-            return 0;
-        }
+        
         
         uint256 _pid = stakingTokenIndexes[address(_token)].index;
         StakingToken storage pool = stakingTokens[_pid];
+
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accRewardPerShare = pool.accRewardPerShare;
         uint256 tokenSupply = pool.stakingToken.balanceOf(address(this));   // <----- counting actual deposits. Anyone can send tokens and dilute everyone's share
         
         if (block.number > pool.lastRewardBlock && tokenSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 reward = multiplier.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+            uint256 reward = (pool.allocPoint == 0)? 0 : multiplier.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
             accRewardPerShare = accRewardPerShare.add(reward.mul(1e12).div(tokenSupply));
         }
 
@@ -251,7 +250,7 @@ contract RewardPool is Ownable {
         }
 
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 reward = multiplier.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        uint256 reward = (pool.allocPoint == 0)? 0 : multiplier.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
         
         //rewardToken.mint(address(this), reward);
 
