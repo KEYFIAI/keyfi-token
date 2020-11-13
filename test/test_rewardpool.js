@@ -3,14 +3,20 @@ const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const RewardPool = artifacts.require('./RewardPool.sol');
 const MockERC20 = artifacts.require('MockERC20');
 const KeyfiToken = artifacts.require('KeyfiToken.sol');
+const Whitelist = artifacts.require('Whitelist.sol');
+
 
 contract('RewardPool', ([alice, bob, carol, minter, community]) => {
   beforeEach(async () => {
     this.keyfi = await KeyfiToken.new({ from: minter });
+    this.whitelist = await Whitelist.new();
+    await this.whitelist.addWhitelisted(bob);
+    await this.whitelist.addWhitelisted(alice);
+    await this.whitelist.addWhitelisted(carol);
   });
 
   it('should set correct state variables', async () => {
-    this.staking = await RewardPool.new(this.keyfi.address, '1000', '0', '1000', 10, { from: alice });
+    this.staking = await RewardPool.new(this.keyfi.address, '1000', '0', '1000', 10, this.whitelist.address, { from: alice });
     await this.keyfi.transferOwnership(this.staking.address, { from: minter });
     const keyfi = await this.staking.rewardToken();
     const owner = await this.keyfi.owner();
@@ -32,7 +38,7 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
 
     it('should allow emergency withdraw', async () => {
       // 100 per block farming rate starting at block 100 with bonus until block 1000
-      this.staking = await RewardPool.new(this.keyfi.address, '100', '100', '1000', 10, { from: alice });
+      this.staking = await RewardPool.new(this.keyfi.address, '100', '100', '1000', 10, this.whitelist.address, { from: alice });
       await this.staking.addStakingToken('100', this.lp.address);
       await this.lp.approve(this.staking.address, '1000', { from: bob });
       await this.staking.deposit(this.lp.address, '100', { from: bob });
@@ -42,7 +48,7 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
     });
 
     it('should allow owner to withdraw reward tokens', async () => {
-      this.staking = await RewardPool.new(this.keyfi.address, '100', '100', '1000', 10, { from: alice });
+      this.staking = await RewardPool.new(this.keyfi.address, '100', '100', '1000', 10, this.whitelist.address, { from: alice });
       await this.keyfi.mint(this.staking.address, "10000000", { from: minter })
       await this.staking.transferOwnership(community, { from: alice });
       await this.staking.adminWithdrawReward('2000', { from: community });
@@ -51,7 +57,7 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
 
     it('should give out rewards only after farming time', async () => {
       // 100 per block farming rate starting at block 100 with bonus until block 1000
-      this.staking = await RewardPool.new(this.keyfi.address, '100', '100', '1000', 10, { from: alice });
+      this.staking = await RewardPool.new(this.keyfi.address, '100', '100', '1000', 10, this.whitelist.address, { from: alice });
       await this.keyfi.mint(this.staking.address, "10000000", { from: minter })
       //await this.keyfi.transferOwnership(this.staking.address, { from: minter });
       await this.staking.addStakingToken('100', this.lp.address);
@@ -76,7 +82,7 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
 
     it('should not distribute rewards if no one deposit', async () => {
       // 100 per block farming rate starting at block 200 with bonus until block 1000
-      this.staking = await RewardPool.new(this.keyfi.address, '100', '200', '1000', 10, { from: alice });
+      this.staking = await RewardPool.new(this.keyfi.address, '100', '200', '1000', 10, this.whitelist.address, { from: alice });
       await this.keyfi.mint(this.staking.address, "10000000", { from: minter })
       await this.keyfi.transferOwnership(this.staking.address, { from: minter });
       await this.staking.addStakingToken('100', this.lp.address);
@@ -96,7 +102,7 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
 
     it('should distribute rewards properly for each staker', async () => {
       // 100 per block farming rate starting at block 300 with bonus until block 1000
-      this.staking = await RewardPool.new(this.keyfi.address, '100', '300', '1000', 10, { from: alice });
+      this.staking = await RewardPool.new(this.keyfi.address, '100', '300', '1000', 10, this.whitelist.address, { from: alice });
       await this.keyfi.mint(this.staking.address, "10000000", { from: minter })
       await this.keyfi.transferOwnership(this.staking.address, { from: minter });
       await this.staking.addStakingToken('100', this.lp.address);
@@ -154,7 +160,7 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
 
     it('should give proper reward allocation to each pool', async () => {
       // 100 per block farming rate starting at block 400 with bonus until block 1000
-      this.staking = await RewardPool.new(this.keyfi.address, '100', '400', '1000', 10, { from: alice });
+      this.staking = await RewardPool.new(this.keyfi.address, '100', '400', '1000', 10, this.whitelist.address, { from: alice });
       await this.keyfi.mint(this.staking.address, "10000000", { from: minter })
       await this.keyfi.transferOwnership(this.staking.address, { from: minter });
       await this.lp.approve(this.staking.address, '1000', { from: alice });
@@ -182,7 +188,7 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
 
     it('should stop giving bonus rewards after the bonus period ends', async () => {
       // 100 per block farming rate starting at block 500 with bonus until block 600
-      this.staking = await RewardPool.new(this.keyfi.address, '100', '500', '600', 10, { from: alice });
+      this.staking = await RewardPool.new(this.keyfi.address, '100', '500', '600', 10, this.whitelist.address, { from: alice });
       await this.keyfi.mint(this.staking.address, "10000000", { from: minter })
       await this.keyfi.transferOwnership(this.staking.address, { from: minter });
       await this.lp.approve(this.staking.address, '1000', { from: alice });
