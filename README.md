@@ -28,6 +28,13 @@ Token rewards are automatically withdrawn on each call to `deposit` and `withdra
 
 **Note**: Reward pool doesn't mint tokens in order to distribute rewards, therefore it must _always_ hold enough reward funds. Contract owners should either re-supply or migrate to an alternate reward contract when the supply is about to end. Querying `rewardBlocksLeft` function is useful for this matter.
 
+The following public methods are provided by the Reward Pool contract:
+
+* **function pendingReward(IERC20 _token, address _user) returns uint256**: calculates pending reward for a given staking token and a user
+* **function deposit(IERC20 _token, uint256 _amount)**: deposit a given amount to a staking pool (LP tokens or any other allowed ERC20). It also sends any pending reward to the user.
+* **function withdraw(IERC20 _token, uint256 _amount)**: withdraw any available amount of staking token + pending rewards
+* **function rewardBlocksLeft() returns uint256**: calculates how many blocks are left with available tokens to allocate rewards at the configured rate (useful for admins to take action on resupplying the pool or activating an inflationary mechanism)
+
 ### KeyfiTokenFactory.sol
 
 KeyfiTokenFactory is the deployer and initializer of the token and reward contracts. It implements the initial token distribution and transfers ownership of both contracts to a proper admin. The factory contract also deploys a set of token timelocks as initially determined by the initial distribution scheme defined by the KeyFi team.
