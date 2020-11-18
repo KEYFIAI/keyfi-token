@@ -48,12 +48,11 @@ contract RewardPool is Ownable {
         bool added;
     }
 
-    KeyfiToken public rewardToken;
-    Whitelist public whitelist;
-
-    uint256 public bonusEndBlock;                   // Block number when bonus reward period ends
+    KeyfiToken public immutable rewardToken;
+    uint256 public immutable bonusEndBlock;                   // Block number when bonus reward period ends
+    uint256 public immutable bonusMultiplier;  // Bonus muliplier for early users
     uint256 public rewardPerBlock;                  // reward tokens distributed per block
-    uint256 public bonusMultiplier = 2;  // Bonus muliplier for early users
+    Whitelist public whitelist;
 
     StakingToken[] public stakingTokens;                                    // Info of each pool
     mapping(address => TokenIndex) public stakingTokenIndexes;
@@ -124,25 +123,6 @@ contract RewardPool is Ownable {
 
         emit TokenAdded(address(_stakingToken), _allocPoint);
     }
-
-    /**
-     * @dev removes a staking token from the list of allowed tokens
-     * @param _stakingToken — The token to be removed.
-     */
-    /*function removeStakingToken(IERC20 _stakingToken) 
-        public 
-        onlyOwner 
-    {
-        require(stakingTokenIndexes[address(_stakingToken)].added, "invalid token");
-        
-        massUpdateTokens();
-        uint256 index = stakingTokenIndexes[address(_stakingToken)].index;
-        delete(stakingTokenIndexes[address(_stakingToken)]);
-        stakingTokens[index] = stakingTokens[stakingTokens.length - 1];
-        stakingTokens.pop();
-
-        emit TokenRemoved(address(_stakingToken));
-    }*/
 
     /**
      * @dev changes the weight allocation for a particular token
@@ -275,7 +255,15 @@ contract RewardPool is Ownable {
         UserInfo storage user = userInfo[_pid][msg.sender];
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
         user.amount = user.amount.add(_amount);
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+
+        uint256 rewardBal = rewardToken.balanceOf(address(this));
+        uint256 diff = 0;
+
+        if (rewardBal < pending) {
+            diff = pending.sub(rewardBal);
+        }
+
+        user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
         
         safeRewardTransfer(msg.sender, pending);
         if (_amount > 0) {
@@ -303,7 +291,15 @@ contract RewardPool is Ownable {
         checkpoint(_pid);
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
         user.amount = user.amount.sub(_amount);
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+
+        uint256 rewardBal = rewardToken.balanceOf(address(this));
+        uint256 diff = 0;
+        
+        if (rewardBal < pending) {
+            diff = pending.sub(rewardBal);
+        }
+
+        user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
 
         if(whitelist.isWhitelisted(msg.sender)) {
             safeRewardTransfer(msg.sender, pending);
