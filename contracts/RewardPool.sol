@@ -255,7 +255,15 @@ contract RewardPool is Ownable {
         UserInfo storage user = userInfo[_pid][msg.sender];
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
         user.amount = user.amount.add(_amount);
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+
+        uint256 rewardBal = rewardToken.balanceOf(address(this));
+        uint256 diff = 0;
+
+        if (rewardBal < pending) {
+            diff = pending.sub(rewardBal);
+        }
+
+        user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
         
         safeRewardTransfer(msg.sender, pending);
         if (_amount > 0) {
@@ -283,7 +291,15 @@ contract RewardPool is Ownable {
         checkpoint(_pid);
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
         user.amount = user.amount.sub(_amount);
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+
+        uint256 rewardBal = rewardToken.balanceOf(address(this));
+        uint256 diff = 0;
+        
+        if (rewardBal < pending) {
+            diff = pending.sub(rewardBal);
+        }
+
+        user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
 
         if(whitelist.isWhitelisted(msg.sender)) {
             safeRewardTransfer(msg.sender, pending);
