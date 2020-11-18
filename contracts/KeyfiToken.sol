@@ -4,16 +4,26 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+
 
 contract KeyfiToken is IERC20, Ownable {
+    using SafeMath for uint256;
+
     string public constant name = "Keyfi Token";
     string public constant symbol = "KEYFI";
     uint8 public constant decimals = 18;
-    uint256 public override totalSupply = 0;
+    uint256 public override totalSupply = 10000000e18;
 
     mapping (address => mapping (address => uint256)) internal allowances;
     mapping (address => uint256) internal balances;
     mapping (address => address) public delegates;
+
+
+    address public minter;
+    uint256 public mintingAllowedAfter;
+    uint32 public minimumMintGap = 1 days * 365;
+    uint8 public mintCap = 2;
 
     struct Checkpoint {
         uint256 fromBlock;
@@ -27,19 +37,64 @@ contract KeyfiToken is IERC20, Ownable {
 
     mapping (address => uint) public nonces;
 
+    event MinterChanged(address minter, address newMinter);
+    event MinimumMintGapChanged(uint32 previousMinimumGap, uint32 newMinimumGap);
+    event MintCapChanged(uint8 previousCap, uint8 newCap);
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);    
     event DelegateVotesChanged(address indexed delegate, uint256 previousBalance, uint256 newBalance);
     event Transfer(address indexed from, address indexed to, uint256 amount);
     event Approval(address indexed owner, address indexed spender, uint256 amount);
 
-    function mint(address _to, uint256 _amount) 
+    constructor(address account, address _minter, uint256 _mintingAllowedAfter) public {
+        balances[account] = totalSupply;
+        minter = _minter;
+        mintingAllowedAfter = _mintingAllowedAfter;
+
+        emit Transfer(address(0), account, totalSupply);
+        emit MinterChanged(address(0), minter);
+    }
+
+    /**
+     * @dev Change the minter address
+     * @param _minter The address of the new minter
+     */
+    function setMinter(address _minter) 
+        public 
+        onlyOwner
+    {
+        emit MinterChanged(minter, _minter);
+        minter = _minter;
+    }
+
+    function setMintCap(uint8 _cap) 
         public 
         onlyOwner 
     {
-        totalSupply = add256(totalSupply, _amount, "KeyfiToken::mint: mint amount overflows");
-        balances[_to] = add256(balances[_to], _amount, "KeyfiToken::mint: mint amount overflows");
-        _moveDelegates(address(0), delegates[_to], _amount);
+        emit MintCapChanged(mintCap, _cap);
+        mintCap = _cap;
+    }
 
+    function setMinimumMintGap(uint32 _gap) 
+        public
+        onlyOwner
+    {
+        emit MinimumMintGapChanged(minimumMintGap, _gap);
+        minimumMintGap = _gap;
+    }
+
+    function mint(address _to, uint256 _amount) 
+        public 
+    {
+        require(msg.sender == minter, "KeyfiToken::mint: only the minter can mint");
+        require(now >= mintingAllowedAfter, "KeyfiToken::mint: minting not allowed yet");
+        require(_to != address(0), "KeyfiToken::mint: cannot transfer to the zero address");
+        require(_amount <= (totalSupply.mul(mintCap)).div(100), "KeyfiToken::mint: exceeded mint cap");
+
+        mintingAllowedAfter = now.add(minimumMintGap);
+        totalSupply = totalSupply.add(_amount);
+        balances[_to] = balances[_to].add(_amount);
+
+        _moveDelegates(address(0), delegates[_to], _amount);
         emit Transfer(address(0), _to, _amount);
     }
 
