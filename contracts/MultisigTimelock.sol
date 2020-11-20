@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2.0
-pragma solidity ^0.6.0;
+pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 /**
@@ -107,7 +107,6 @@ contract MultisigTimelock {
       * @param _required Number of required confirmations.
       */
     constructor(address[] memory _owners, uint256 _required)
-        public
         validRequirement(_owners.length, _required)
     {
         for (uint256 i = 0; i < _owners.length; i++) {

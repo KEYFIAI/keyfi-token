@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.6.0;
+pragma solidity ^0.7.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -73,7 +73,6 @@ contract RewardPool is Ownable {
         uint256 _bonusMultiplier,
         Whitelist _whitelist
     ) 
-        public 
     {
         rewardToken = _rewardToken;
         rewardPerBlock = _rewardPerBlock;
