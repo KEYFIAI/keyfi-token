@@ -59,7 +59,7 @@ contract KeyfiToken is IERC20, Ownable {
      * @param _minter The address of the new minter
      */
     function setMinter(address _minter) 
-        public 
+        external 
         onlyOwner
     {
         emit MinterChanged(minter, _minter);
@@ -67,7 +67,7 @@ contract KeyfiToken is IERC20, Ownable {
     }
 
     function setMintCap(uint8 _cap) 
-        public 
+        external 
         onlyOwner 
     {
         emit MintCapChanged(mintCap, _cap);
@@ -75,7 +75,7 @@ contract KeyfiToken is IERC20, Ownable {
     }
 
     function setMinimumMintGap(uint32 _gap) 
-        public
+        external
         onlyOwner
     {
         emit MinimumMintGapChanged(minimumMintGap, _gap);
@@ -83,7 +83,7 @@ contract KeyfiToken is IERC20, Ownable {
     }
 
     function mint(address _to, uint256 _amount) 
-        public 
+        external 
     {
         require(msg.sender == minter, "KeyfiToken::mint: only the minter can mint");
         require(now >= mintingAllowedAfter, "KeyfiToken::mint: minting not allowed yet");
@@ -191,7 +191,7 @@ contract KeyfiToken is IERC20, Ownable {
      * @param delegatee The address to delegate votes to
      */
     function delegate(address delegatee) 
-        public 
+        external 
     {
         return _delegate(msg.sender, delegatee);
     }
@@ -206,7 +206,7 @@ contract KeyfiToken is IERC20, Ownable {
      * @param s Half of the ECDSA signature pair
      */
     function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) 
-        public 
+        external 
     {
         bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), getChainId(), address(this)));
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
@@ -240,7 +240,7 @@ contract KeyfiToken is IERC20, Ownable {
      * @return The number of votes the account had as of the given block
      */
     function getPriorVotes(address account, uint256 blockNumber) 
-        public 
+        external 
         view 
         returns (uint256) 
     {
