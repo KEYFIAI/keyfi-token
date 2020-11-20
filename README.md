@@ -8,9 +8,15 @@ This repository contains the smart contracts that implement the KEYFI token and 
 
 ### KeyfiToken.sol
 
-`KeyfiToken` is an ERC20-compatible token contract, with minting functionality and vote delegation (based on Compound governance token). Only the contract owner is able to mint additional tokens. The ownership of the token is planned to be held by a community-controlled governance contract.
+`KeyfiToken` is an ERC20-compatible token contract, with minting functionality and vote delegation (based on Compound governance token). Only the contract `minter` is able to mint additional tokens. The `owner` role of the token contract is planned to be held by the community through decentralized governance. (Governance.sol) and will be able to change minter address and all the minting parameters.
 
-A governance contract such as Compound's "Governor Alpha" or a variation of it is planned to be introduced in next stages of development.
+#### Inflationary minting
+
+There is a `minter` address that is able to mint new tokens every allowed period. This minting capability is capped by a percentage of the total supply. In the Keyfi system, the community-controlled governance contract could be a minter, but the community could decide to transfer minting capabilitis to a smart contract while keeping ownership over the token. 
+
+Additionally, there will be a period of 2 years in which not even the minter address will be able to mint additional tokens, in order to mitigate for any potential risks associated with the minting capability and ensuring that the proper governance mechanisms are in place before minting is enabled.
+
+**Notes on governance and contract ownership**: contracts are being implemented allowing enough flexibility for the community to control factors such as the minting and reward parameters. However, the goal of the governance platform is to allow the community to decide to relinquish control of any aspect of the network, if said proposals get enough votes. (e.g. transfer token `owner` to a _zero_ address). The intent is to leave those decisions to the community.
 
 ### RewardPool.sol
 
@@ -35,17 +41,21 @@ The following public methods are provided by the Reward Pool contract:
 * **function withdraw(IERC20 _token, uint256 _amount)**: withdraw any available amount of staking token + pending rewards
 * **function rewardBlocksLeft() returns uint256**: calculates how many blocks are left with available tokens to allocate rewards at the configured rate (useful for admins to take action on resupplying the pool or activating an inflationary mechanism)
 
-### KeyfiTokenFactory.sol
+### Governance.sol
 
-KeyfiTokenFactory is the deployer and initializer of the token and reward contracts. It implements the initial token distribution and transfers ownership of both contracts to a proper admin. The factory contract also deploys a set of token timelocks as initially determined by the initial distribution scheme defined by the KeyFi team.
+Governance.sol implements the logic for decentralized governance over the KeyFi platform and its
+relevant contracts (in the meantime: KeyfiToken and RewardPool contracts).
 
-### MultisigTimelock.sol
+Anybody with 1% of KEYFI delegated to their address can propose a governance action. All proposals are subject to a 3 day voting period, and any address with voting power can vote for or against the proposal. If a majority, and at least 400,000 votes are cast for the proposal, it is queued in the Timelock, and can be implemented after 2 days.
 
-A simple multisig timelock contract (based on DDEX's `MultiSigWalletWithTimelock`) is provided in order to act as the "admin key" of relevant ownable contracts provisionally. This is meant to be substituted by a proper community voting contract such as Compound's "Governor Alpha" in the next stages.
+### Timelock.sol
+
+Timelock contract acts as an execution buffer for all the transactions that are approved by the Governance contract.
+
 
 ## Development
 
-Smart contracts are being implemented using Solidity `0.6.0`.
+Smart contracts are being implemented using Solidity `0.7.0`.
 
 ### Prerequisites
 
