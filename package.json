@@ -1,6 +1,6 @@
 {
   "name": "keyfi-token",
-  "version": "0.0.1",
+  "version": "1.0.1",
   "description": "Solidity smart contracts for Keyfi token economics",
   "author": "Keyfi Foundation",
   "scripts": {
