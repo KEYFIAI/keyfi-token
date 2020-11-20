@@ -126,6 +126,8 @@ contract KeyfiToken is IERC20, Ownable {
         override
         returns (bool) 
     {
+        require(spender != address(0), "KeyfiToken: approve to the zero address");
+
         allowances[msg.sender][spender] = amount;
         emit Approval(msg.sender, spender, amount);
         return true;
