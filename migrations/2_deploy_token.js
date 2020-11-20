@@ -1,6 +1,6 @@
 let KeyfiToken = artifacts.require('KeyfiToken.sol')
-let account = '0x9F90B22a2541D9Bf62B4f53A112EF297DB98Def7'
-let minter = '0x9F90B22a2541D9Bf62B4f53A112EF297DB98Def7'
+let account = '0xFdb6ac6750690D9c46d038f2536eC995D9d3D6d8'
+let minter = '0x856bcd7F92436F749Af98DE309785A42F747B79a'
 let mintingAllowedAfter = 0
 
 module.exports = async deployer => {

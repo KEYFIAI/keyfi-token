@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./KeyfiToken.sol";
 import "./Whitelist.sol";
-//import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
  /**
  * @title RewardPool
@@ -176,8 +175,6 @@ contract RewardPool is Ownable {
     {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
 
-        
-        
         uint256 _pid = stakingTokenIndexes[address(_token)].index;
         StakingToken storage pool = stakingTokens[_pid];
 
@@ -268,9 +265,8 @@ contract RewardPool is Ownable {
         safeRewardTransfer(msg.sender, pending);
         if (_amount > 0) {
             pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
+            emit Deposit(msg.sender, _pid, _amount);
         }
-
-        emit Deposit(msg.sender, _pid, _amount);
     }
 
     /**
@@ -307,9 +303,8 @@ contract RewardPool is Ownable {
         
         if(_amount > 0) {
             pool.stakingToken.safeTransfer(address(msg.sender), _amount);
+            emit Withdraw(msg.sender, _pid, _amount);
         }
-
-        emit Withdraw(msg.sender, _pid, _amount);
     }
 
     /**
@@ -341,7 +336,7 @@ contract RewardPool is Ownable {
      * @param _to — the target address of the reward
      * @param _amount — the amount of reward to transfer
      */
-    function safeRewardTransfer(address _to, uint256 _amount) 
+    function safeRewardTransfer(address _to, uint256 _amount)
         internal 
     {
         uint256 rewardBal = rewardToken.balanceOf(address(this));
