@@ -360,18 +360,4 @@ contract RewardPool is Ownable {
         uint256 balance = rewardToken.balanceOf(address(this));
         return balance.div(rewardPerBlock);
     }
-
-    /**
-     * @dev Allows owner to withdraw any amount of reward tokens. Useful if needed to migrate to
-     * an updated version of the reward pool.
-     * Note: To avoid potential stealing of staked funds. Reward token is not allowed to be added
-     * as a staking token.
-     * @param amount — The amount of tokens to be withdrawn
-     */
-    function adminWithdrawReward(uint256 amount)
-        public
-        onlyOwner
-    {
-        rewardToken.safeTransfer(msg.sender, amount);       
-    }
 }

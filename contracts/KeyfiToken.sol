@@ -42,8 +42,6 @@ contract KeyfiToken is IERC20, Ownable {
     event MintCapChanged(uint8 previousCap, uint8 newCap);
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);    
     event DelegateVotesChanged(address indexed delegate, uint256 previousBalance, uint256 newBalance);
-    //event Transfer(address indexed from, address indexed to, uint256 amount);
-    //event Approval(address indexed owner, address indexed spender, uint256 amount);
 
     constructor(address account, address _minter, uint256 _mintingAllowedAfter) {
         balances[account] = totalSupply;
