@@ -200,8 +200,8 @@ contract GovernorAlpha {
     }
 
     function cancel(uint proposalId) public {
-        ProposalState state = state(proposalId);
-        require(state != ProposalState.Executed, "GovernorAlpha::cancel: cannot cancel executed proposal");
+        ProposalState _state = state(proposalId);
+        require(_state != ProposalState.Executed, "GovernorAlpha::cancel: cannot cancel executed proposal");
 
         Proposal storage proposal = proposals[proposalId];
         require(msg.sender == guardian || keyfi.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold(), "GovernorAlpha::cancel: proposer above threshold");
