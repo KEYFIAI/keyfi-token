@@ -48,14 +48,6 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
       assert.equal((await this.lp.balanceOf(bob)).valueOf(), '1000');
     });
 
-    it('should allow owner to withdraw reward tokens', async () => {
-      this.staking = await RewardPool.new(this.keyfi.address, '100', '100', '1000', 10, this.whitelist.address, { from: alice });
-      await this.keyfi.transfer(this.staking.address, "10000000", { from: minter })
-      await this.staking.transferOwnership(community, { from: alice });
-      await this.staking.adminWithdrawReward('2000', { from: community });
-      assert.equal((await this.keyfi.balanceOf(community)).valueOf(), '2000');
-    });
-
     it('should give out rewards only after farming time', async () => {
       // 100 per block farming rate starting at block 100 with bonus until block 1000
       this.staking = await RewardPool.new(this.keyfi.address, '100', '100', '1000', 10, this.whitelist.address, { from: alice });
