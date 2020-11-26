@@ -1,17 +1,10 @@
 require('dotenv').config()
 
 const HDWalletProvider = require('truffle-hdwallet-provider')
-const fs = require('fs');
+const MNEMONIC = process.env.SK_DEPLOY_WALLET_KEY
+const MainnetProvider = new HDWalletProvider(MNEMONIC, "https://mainnet.infura.io/v3/" + process.env.SK_DEPLOY_INFURA_KEY)
+const RopstenProvider = new HDWalletProvider(MNEMONIC, "https://ropsten.infura.io/v3/" + process.env.SK_DEPLOY_INFURA_KEY)
 
-const infuraKey = process.env["INFURA_KEY"]
-const mainnetURL = "https://mainnet.infura.io/v3/" + infuraKey
-const ropstenURL = "https://ropsten.infura.io/v3/" + infuraKey
-
-const walletPath = "./local/wallet.json"  // Should be JSON file where "mnemonic" is found
-const { mnemonic } = JSON.parse(fs.readFileSync(walletPath))
-
-const MainnetProvider = new HDWalletProvider(mnemonic, mainnetURL, 0, 5)
-const RopstenProvider = new HDWalletProvider(mnemonic, ropstenURL, 0, 5)
 
 module.exports = {
   networks: {
@@ -37,7 +30,7 @@ module.exports = {
       provider: () => RopstenProvider,
       network_id: 3,
       gas: 5000000,
-      gasPrice: 40000000000, // 5 gwei
+      gasPrice: 110000000000, // 110 gwei
       // confirmations: 2,    // # of confs to wait between deployments. (default: 0)
       // timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
       // skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
@@ -47,7 +40,7 @@ module.exports = {
       network_id: 1,
       //from: addresses[0],
       gas: 5000000,
-      gasPrice: 8000000000, // 8 gwei
+      gasPrice: 110000000000, // 110 gwei
       //skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
     }
     // Useful for private networks
