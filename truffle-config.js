@@ -8,10 +8,11 @@ const mainnetURL = "https://mainnet.infura.io/v3/" + infuraKey
 const ropstenURL = "https://ropsten.infura.io/v3/" + infuraKey
 
 const walletPath = "./local/wallet.json"  // Should be JSON file where "mnemonic" is found
-const { mnemonic } = JSON.parse(fs.readFileSync(walletPath))
+const MNEMONIC = process.env.SK_DEPLOY_WALLET_KEY
 
-const MainnetProvider = new HDWalletProvider(mnemonic, mainnetURL, 0, 5)
-const RopstenProvider = new HDWalletProvider(mnemonic, ropstenURL, 0, 5)
+const MainnetProvider = new HDWalletProvider(MNEMONIC, "https://mainnet.infura.io/v3/" + process.env.SK_DEPLOY_INFURA_KEY)
+const RopstenProvider = new HDWalletProvider(MNEMONIC, "https://ropsten.infura.io/v3/" + process.env.SK_DEPLOY_INFURA_KEY)
+
 
 module.exports = {
   networks: {
