@@ -63,6 +63,7 @@ contract RewardPool is Ownable {
     event TokenRemoved(address indexed token);
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
+    event WithdrawRewards(address indexed user, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
     constructor(
@@ -120,6 +121,16 @@ contract RewardPool is Ownable {
         });
 
         emit TokenAdded(address(_stakingToken), _allocPoint);
+    }
+
+    // CHECK STAKING TOKEN ADDED
+    function isStakingToken(IERC20 _token) 
+        external 
+        view 
+        returns (bool) 
+    {
+        require(stakingTokenIndexes[address(_token)].added, "token does not exist in list");
+        return true;
     }
 
     /**
@@ -234,6 +245,19 @@ contract RewardPool is Ownable {
         pool.lastRewardBlock = block.number;
     }
 
+    // GET STAKED TOKEN BALNCE
+    function getBalance(IERC20 _token) 
+        external 
+        view 
+        returns (uint256)
+    {
+        require(stakingTokenIndexes[address(_token)].added, "invalid token");
+        uint256 _pid = stakingTokenIndexes[address(_token)].index;
+        UserInfo storage user = userInfo[_pid][msg.sender];
+
+        return user.amount;
+    }
+
     /**
      * @dev deposit _amount into a given _token pool
      * @param _token — The staking token to be deposited
@@ -303,6 +327,34 @@ contract RewardPool is Ownable {
         if(_amount > 0) {
             pool.stakingToken.safeTransfer(address(msg.sender), _amount);
             emit Withdraw(msg.sender, _pid, _amount);
+        }
+    }
+
+    // WITHDRAW TOKENS ONLY
+    function withdrawRewards(IERC20 _token)
+        public
+    {
+        require(stakingTokenIndexes[address(_token)].added, "invalid token");
+        
+        uint256 _pid = stakingTokenIndexes[address(_token)].index;
+        StakingToken storage pool = stakingTokens[_pid];
+
+        UserInfo storage user = userInfo[_pid][msg.sender];
+
+        checkpoint(_pid);
+        uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
+        uint256 rewardBal = rewardToken.balanceOf(address(this));
+        uint256 diff = 0;
+        
+        if (rewardBal < pending) {
+            diff = pending.sub(rewardBal);
+        }
+
+        user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
+
+        if(whitelist.isWhitelisted(msg.sender)) {
+            safeRewardTransfer(msg.sender, pending);
+            emit WithdrawRewards(msg.sender, pending);
         }
     }
 
