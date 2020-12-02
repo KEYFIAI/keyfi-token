@@ -15,7 +15,7 @@ contract Airdrop is Ownable {
     IERC20 token;
     Whitelist whitelist;
     mapping(address => bool) public claimed;
-    uint256 airdropAmount;
+    uint256 public airdropAmount;
 
     event SetAmount(uint256 newAmount);
     event AirdropClaimed(address recipient, uint256 amount);
