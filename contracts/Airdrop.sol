@@ -27,6 +27,10 @@ contract Airdrop is Ownable {
         airdropAmount = _airdropAmount;
     }
 
+    /**
+     * @dev Allows owner to change the airdrop amount
+     * @param _newAmount — new airdrop amount
+     */
     function setAmount(uint256 _newAmount)
         external
         onlyOwner
@@ -35,6 +39,10 @@ contract Airdrop is Ownable {
         emit SetAmount(_newAmount);
     }
 
+    /**
+     * @dev withdraws tokens from the contract. Only owner can withdraw.
+     * @param _amount — amount of tokens to withdraw
+     */
     function withdrawTokens(uint256 _amount)
         external
         onlyOwner
@@ -43,6 +51,9 @@ contract Airdrop is Ownable {
         emit TokensWithdrawn(_amount);
     }
 
+    /**
+     * @dev Allows a whitelisted address to claim airdrop
+     */
     function claim() 
         external
     {
@@ -52,6 +63,9 @@ contract Airdrop is Ownable {
         emit AirdropClaimed(msg.sender, airdropAmount);
     }
 
+    /**
+     * @dev calculates remaining airdrops left according to current token balance and airdrop size
+     */
     function airdropsLeft()
         external 
         view
