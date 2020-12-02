@@ -52,6 +52,15 @@ Anybody with 1% of KEYFI delegated to their address can propose a governance act
 
 Timelock contract acts as an execution buffer for all the transactions that are approved by the Governance contract.
 
+### Airdrop.sol
+
+Airdrop contract allows to deposit tokens to it and be distributed as a claimable airdrop to _whitelisted_ addresses at a fixed airdrop amount. The following external functions are provided:
+
+* **setAmount(uint256 _newAmount)**: allows **(owner only)** to change the amount of tokens per airdrop.
+* **withdrawTokens(uint256 _amount)**: allows **(owner only)** to withdraw airdrop tokens from the contract.
+* **claim()**: allows any _whitelisted_ address to claim an airdrop (only once).
+* **airdropsLeft()**: returns a calculation of how many airdrops are available given the current airdrop size and the contract's token balance.
+
 
 ## Development
 

@@ -1,4 +1,4 @@
-const { expectRevert, time } = require('@openzeppelin/test-helpers');
+const { time } = require('@openzeppelin/test-helpers');
 
 const RewardPool = artifacts.require('./RewardPool.sol');
 const MockERC20 = artifacts.require('MockERC20');
