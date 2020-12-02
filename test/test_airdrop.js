@@ -2,7 +2,6 @@ const { expectEvent } = require('@openzeppelin/test-helpers');
 
 const assertThrows = require("./utils/assertThrows")
 
-const MockERC20 = artifacts.require('MockERC20')
 const KeyfiToken = artifacts.require('KeyfiToken.sol')
 const Whitelist = artifacts.require('Whitelist.sol')
 const Airdrop = artifacts.require('Airdrop.sol')
@@ -52,6 +51,28 @@ contract('Airdrop', ([admin, alice, bob, carol, dave, minter, community]) => {
     expectEvent(tx, 'SetAmount')
 
     await assertThrows(airdrop.setAmount('999999', { from:bob }))
+  })
+
+  it('should allow users to withdraw remaining tokens after airdrop amount was increased', async () => { 
+    let initialAirdropAmount = '1'
+    let finalAirdropAmount = '10'
+    let remainingAirdropAmount = (Number(finalAirdropAmount) - Number(initialAirdropAmount)).toString()
+
+    // Admin sets an initial airdrop value of 1
+    await airdrop.setAmount(initialAirdropAmount, { from: admin })
+    
+    // Alice claims the airdrop
+    let txFirstClaim = await airdrop.claim({ from: alice })
+    expectEvent(txFirstClaim, 'AirdropClaimed', {recipient: alice, amount: initialAirdropAmount})
+    assert.equal(Number(await keyfi.balanceOf(alice)), initialAirdropAmount)
+
+    // Admin increases airdrop amount
+    await airdrop.setAmount(finalAirdropAmount, { from: admin })
+
+    // Alice claims the remaining tokens up to the total
+    let txSecondClaim = await airdrop.claim({ from: alice })
+    expectEvent(txSecondClaim, 'AirdropClaimed', { recipient: alice, amount: remainingAirdropAmount })
+    assert.equal(Number(await keyfi.balanceOf(alice)), finalAirdropAmount)    
   })
 
   it('should allow owner to withdraw tokens', async () => {
