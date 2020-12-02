@@ -59,6 +59,7 @@ contract Airdrop is Ownable {
     {
         require(!claimed[msg.sender], "Airdrop::claim:: sender already claimed airdrop");
         require(whitelist.isWhitelisted(msg.sender), "Airdrop::claim:: address is not whitelisted");
+        claimed[msg.sender] = true;
         token.safeTransfer(msg.sender, airdropAmount);
         emit AirdropClaimed(msg.sender, airdropAmount);
     }

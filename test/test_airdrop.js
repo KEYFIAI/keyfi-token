@@ -35,13 +35,15 @@ contract('Airdrop', ([admin, alice, bob, carol, dave, minter, community]) => {
   })
 
   it('should airdrop correctly', async () => {
+    await assertThrows(airdrop.claim({ from: dave }))
+
     let tx = await airdrop.claim({ from: alice })
     let airdropAmount = Number(await airdrop.airdropAmount())
     let aliceBalance = Number(await keyfi.balanceOf(alice))
     assert.equal(aliceBalance, airdropAmount)
     expectEvent(tx, 'AirdropClaimed')
 
-    await assertThrows(airdrop.claim({ from: dave }))
+    await assertThrows(airdrop.claim({ from: alice }))  // shouldn't allow to claim airdrop twice
   })
 
   it('should allow owner to change airdrop amount', async () => {
