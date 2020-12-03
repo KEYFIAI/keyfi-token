@@ -65,6 +65,8 @@ contract RewardPool is Ownable {
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event WithdrawRewards(address indexed user, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
+    event RewardPerBlockChanged(uint256 previousRate, uint256 newRate);
+    event SetTokenParams(address token, uint256 allocPoints);
 
     constructor(
         KeyfiToken _rewardToken,
@@ -149,6 +151,16 @@ contract RewardPool is Ownable {
         uint256 index = stakingTokenIndexes[address(_token)].index;
         totalAllocPoint = totalAllocPoint.sub(stakingTokens[index].allocPoint).add(_allocPoint);
         stakingTokens[index].allocPoint = _allocPoint;
+        emit SetTokenParams(address(_token), _allocPoint);
+    }
+
+    function setRewardPerBlock(uint256 _newRate)
+        external
+        onlyOwner
+    {
+        massUpdateTokens();
+        emit RewardPerBlockChanged(rewardPerBlock, _newRate);
+        rewardPerBlock = _newRate;
     }
 
     /**
