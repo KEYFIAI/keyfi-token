@@ -14,7 +14,7 @@ contract Airdrop is Ownable {
 
     IERC20 token;
     Whitelist whitelist;
-    mapping(address => bool) public claimed;
+    mapping(address => uint) public claimed;
     uint256 public airdropAmount;
 
     event SetAmount(uint256 newAmount);
@@ -57,11 +57,12 @@ contract Airdrop is Ownable {
     function claim() 
         external
     {
-        require(!claimed[msg.sender], "Airdrop::claim:: sender already claimed airdrop");
+        require(claimed[msg.sender] < airdropAmount, "Airdrop::claim:: sender already claimed airdrop");
         require(whitelist.isWhitelisted(msg.sender), "Airdrop::claim:: address is not whitelisted");
-        claimed[msg.sender] = true;
-        token.safeTransfer(msg.sender, airdropAmount);
-        emit AirdropClaimed(msg.sender, airdropAmount);
+        uint tokensToClaim = airdropAmount.sub(claimed[msg.sender]);
+        claimed[msg.sender] = airdropAmount;
+        token.safeTransfer(msg.sender, tokensToClaim);
+        emit AirdropClaimed(msg.sender, tokensToClaim);
     }
 
     /**
