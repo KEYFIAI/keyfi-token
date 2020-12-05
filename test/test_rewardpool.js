@@ -1,4 +1,5 @@
 const { time } = require('@openzeppelin/test-helpers');
+const assertThrows = require("./utils/assertThrows")
 
 const RewardPool = artifacts.require('./RewardPool.sol');
 const MockERC20 = artifacts.require('MockERC20');
@@ -218,6 +219,36 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
       await this.staking.deposit(this.lp.address, 0, { from: alice });
       let balance3 = await this.keyfi.balanceOf(alice)
       assert.equal(Number(balance2), Number(balance3))
+    })
+
+    it('shoud allow owner to change rewardPerBlock', async () => {
+      this.staking = await RewardPool.new(this.keyfi.address, '100', '400', '5000', 10, this.whitelist.address, { from: alice });
+      await this.keyfi.transfer(this.staking.address, "10000000", { from: minter })
+      await this.lp.approve(this.staking.address, '1000', { from: alice });
+      await this.lp2.approve(this.staking.address, '1000', { from: bob });
+      // Add first LP to the pool with allocation 1
+      await this.staking.addStakingToken('10', this.lp.address);
+      // Alice deposits 10 LPs at block 410
+      await time.advanceBlockTo('2409');
+      await this.staking.deposit(this.lp.address, '10', { from: alice });
+      // Add LP2 to the pool with allocation 2 at block 420
+      await time.advanceBlockTo('2419');
+      await this.staking.addStakingToken('20', this.lp2.address);
+      // Alice should have 10*1000 pending reward
+      assert.equal((await this.staking.pendingReward(this.lp.address, alice)).valueOf(), '10000');
+
+      // Owner changes reward rate
+      await this.staking.setRewardPerBlock(50, { from: alice })
+      assert.equal(await this.staking.rewardPerBlock(), 50)
+      
+      await time.advanceBlockTo('2424');
+      await this.staking.deposit(this.lp2.address, '5', { from: bob });
+      assert.equal((await this.staking.pendingReward(this.lp.address, alice)).valueOf(), '10999');
+      await time.advanceBlockTo('2430');
+      assert.equal((await this.staking.pendingReward(this.lp.address, alice)).valueOf(), '11833');
+      assert.equal((await this.staking.pendingReward(this.lp2.address, bob)).valueOf(), '1666');
+
+      await assertThrows(this.staking.setRewardPerBlock(100000, { from: bob }))     // only owner can change
     })
   });
 });
