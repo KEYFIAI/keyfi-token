@@ -47,7 +47,7 @@ contract KeyfiToken is IERC20, Ownable {
         balances[account] = totalSupply;
         minter = _minter;
         mintingAllowedAfter = _mintingAllowedAfter;
-
+        
         emit Transfer(address(0), account, totalSupply);
         emit MinterChanged(address(0), minter);
     }
@@ -375,14 +375,16 @@ contract KeyfiToken is IERC20, Ownable {
      * - `account` cannot be the zero address.
      * - `account` must have at least `amount` tokens.
      */
-    function _burn(address account, uint256 amount) internal virtual {
+    function _burn(address account, uint256 amount)
+        internal 
+    {
         require(account != address(0), "ERC20: burn from the zero address");
 
         balances[account] = balances[account].sub(amount, "ERC20: burn amount exceeds balance");
         totalSupply = totalSupply.sub(amount);
         emit Transfer(account, address(0), amount);
         
-        _moveDelegates(account, address(0), amount);
+        _moveDelegates(delegates[account], address(0), amount);
     }
 
     /**
