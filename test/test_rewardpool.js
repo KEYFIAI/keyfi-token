@@ -203,7 +203,7 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
       await this.staking.deposit(this.lp.address, '10', { from: alice });
       // At block 605, she should have 1000*10 + 100*5 = 10500 pending.
       await time.advanceBlockTo('800');
-      await this.staking.set(this.lp.address, '0')
+      await this.staking.setAllocPoint(this.lp.address, '0')
       let pending1 = await this.staking.pendingReward(this.lp.address, alice)
       await time.advanceBlockTo('900');
       let pending2 = await this.staking.pendingReward(this.lp.address, alice)
