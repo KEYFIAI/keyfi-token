@@ -8,11 +8,11 @@ let minter = '0xEFcE31c1f23422a21fdE99f65bB091601eE54Fd6'
 let mintingAllowedAfter = 0
 
 let rewardPerBlock = "700000000000000000" // 0.7 tokens per block
-
+let launchDate = 1607428800
 
 module.exports = async deployer => {
   
 	deployer.deploy(KeyfiToken, account, minter, mintingAllowedAfter).then( () => {
-		return deployer.deploy(RewardPool, KeyfiToken.address, rewardPerBlock, 0, 0, 2, whitelist)
+		return deployer.deploy(RewardPool, KeyfiToken.address, rewardPerBlock, 0, 0, 2, whitelist, launchDate)
 	})
 }

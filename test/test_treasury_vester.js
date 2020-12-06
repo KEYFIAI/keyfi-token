@@ -17,7 +17,7 @@ contract('TreasuryVester', ([minter, team, recipient]) => {
     begin = Number(await time.latest()) + 30
     cliff = begin + (day * 30)
     end = begin + (year * 2)
-    console.log("amount = " + amount)
+
     vesting = await TreasuryVester.new(keyfi.address, team, amount, begin, cliff, end)
     await keyfi.transfer(vesting.address, amount, { from: minter })
   });

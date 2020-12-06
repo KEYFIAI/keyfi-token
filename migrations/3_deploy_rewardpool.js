@@ -5,8 +5,9 @@ let whitelist = '0xa40fC5a9232868B0b681B9C34F3081be32368ad3'
 let startBlock = 0
 let endBonus = 0
 let multiplier = 2
+let launchDate = 1607428800
 
 module.exports = async deployer => {
   
-  return deployer.deploy(RewardPool, tokenAddress, rewardPerBlock, startBlock, endBonus, multiplier, whitelist)
+  return deployer.deploy(RewardPool, tokenAddress, rewardPerBlock, startBlock, endBonus, multiplier, whitelist, launchDate)
 }
