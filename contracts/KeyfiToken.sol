@@ -47,7 +47,7 @@ contract KeyfiToken is IERC20, Ownable {
         balances[account] = totalSupply;
         minter = _minter;
         mintingAllowedAfter = _mintingAllowedAfter;
-
+        
         emit Transfer(address(0), account, totalSupply);
         emit MinterChanged(address(0), minter);
     }
@@ -103,7 +103,7 @@ contract KeyfiToken is IERC20, Ownable {
      * @return The number of tokens approved
      */
     function allowance(address account, address spender) 
-        external 
+        public
         view 
         override 
         returns (uint256) 
@@ -120,11 +120,11 @@ contract KeyfiToken is IERC20, Ownable {
      * @return Whether or not the approval succeeded
      */
     function approve(address spender, uint256 amount) 
-        external 
+        public 
         override
         returns (bool) 
     {
-        require(spender != address(0), "KeyfiToken: approve to the zero address");
+        require(spender != address(0), "KeyfiToken: cannot approve zero address");
 
         allowances[msg.sender][spender] = amount;
         emit Approval(msg.sender, spender, amount);
@@ -362,5 +362,66 @@ contract KeyfiToken is IERC20, Ownable {
         uint256 chainId;
         assembly { chainId := chainid() }
         return chainId;
+    }
+
+    /**
+     * @dev Destroys `amount` tokens from `account`, reducing the
+     * total supply.
+     *
+     * Emits a {Transfer} event with `to` set to the zero address.
+     *
+     * Requirements
+     *
+     * - `account` cannot be the zero address.
+     * - `account` must have at least `amount` tokens.
+     */
+    function _burn(address account, uint256 amount)
+        internal 
+    {
+        require(account != address(0), "ERC20: burn from the zero address");
+
+        balances[account] = balances[account].sub(amount, "ERC20: burn amount exceeds balance");
+        totalSupply = totalSupply.sub(amount);
+        emit Transfer(account, address(0), amount);
+        
+        _moveDelegates(delegates[account], address(0), amount);
+    }
+
+    /**
+     * @dev Destroys `amount` tokens from the caller.
+     */
+    function burn(uint256 amount) 
+        external 
+        returns (bool)
+    {
+        _burn(msg.sender, amount);
+        return true;
+    }
+
+    /**
+     * @dev Destroys `amount` tokens from `account`, deducting from the caller's
+     * allowance.
+     *
+     * Requirements:
+     *
+     * - the caller must have allowance for ``accounts``'s tokens of at least
+     * `amount`.
+     */
+    function burnFrom(address account, uint256 amount) 
+        external
+        returns (bool)
+    {
+        address spender = msg.sender;
+        uint256 spenderAllowance = allowances[account][spender];
+
+        if (spender != account && spenderAllowance != uint256(-1)) {
+            uint256 newAllowance = sub256(spenderAllowance, amount, "KeyfiToken::burnFrom: burn amount exceeds spender allowance");
+            allowances[account][spender] = newAllowance;
+
+            emit Approval(account, spender, newAllowance);
+        }
+
+        _burn(account, amount);
+        return true;
     }
 }
