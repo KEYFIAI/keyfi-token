@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 contract KeyfiToken is IERC20, Ownable {
     using SafeMath for uint256;
 
-    string public constant name = "Keyfi Token";
+    string public constant name = "KeyFi Token";
     string public constant symbol = "KEYFI";
     uint8 public constant decimals = 18;
     uint256 public override totalSupply = 10000000e18;

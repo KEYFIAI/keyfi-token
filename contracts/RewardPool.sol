@@ -58,6 +58,7 @@ contract RewardPool is Ownable {
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;     // Info of each user that stakes tokens
     uint256 public totalAllocPoint = 0;                                     // Total allocation points. Must be the sum of all allocation points in all pools
     uint256 public startBlock;                                              // The block number when rewards start
+    uint256 public launchDate;
 
     event TokenAdded(address indexed token, uint256 allocPoints);
     event TokenRemoved(address indexed token);
@@ -74,7 +75,8 @@ contract RewardPool is Ownable {
         uint256 _startBlock,
         uint256 _bonusEndBlock,
         uint256 _bonusMultiplier,
-        Whitelist _whitelist
+        Whitelist _whitelist,
+        uint256 _launchDate
     ) 
     {
         rewardToken = _rewardToken;
@@ -83,6 +85,7 @@ contract RewardPool is Ownable {
         startBlock = _startBlock;
         bonusMultiplier = _bonusMultiplier;
         whitelist = _whitelist;
+        launchDate = _launchDate;
     }
 
     function stakingTokensCount() 
@@ -131,8 +134,7 @@ contract RewardPool is Ownable {
         view 
         returns (bool) 
     {
-        require(stakingTokenIndexes[address(_token)].added, "token does not exist in list");
-        return true;
+        return stakingTokenIndexes[address(_token)].added;
     }
 
     /**
@@ -280,6 +282,7 @@ contract RewardPool is Ownable {
     {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
         require(whitelist.isWhitelisted(msg.sender), "sender address is not eligible");
+        require(block.timestamp >= launchDate, "deposits are not enabled yet");
         
         uint256 _pid = stakingTokenIndexes[address(_token)].index;
         checkpoint(_pid);
