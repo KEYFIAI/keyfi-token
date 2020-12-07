@@ -40,7 +40,7 @@ module.exports = {
       network_id: 1,
       //from: addresses[0],
       gas: 5000000,
-      gasPrice: 25000000000, // 25 gwei
+      gasPrice: 48000000000, // 40 gwei
       //skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
     }
     // Useful for private networks

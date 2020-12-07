@@ -8,7 +8,8 @@ let minter = '0xFdb6ac6750690D9c46d038f2536eC995D9d3D6d8'
 let mintingAllowedAfter = 0
 
 let rewardPerBlock = web3.utils.toWei('1') //"1000000000000000000" // 1 token per block
-let launchDate = 1607305200
+//let launchDate = 1607322000
+let launchDate = 9999999999
 
 let amount = web3.utils.toWei('958333')
 let begin = launchDate 

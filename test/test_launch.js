@@ -56,7 +56,8 @@ contract('KeyFi contracts', (accounts) => {
       startBlock, 
       bonusEndBlock, 
       multiplier,
-      whitelist.address
+      whitelist.address,
+      launchDate
     )
     teamVesting = await TreasuryVester.new(
       keyfi.address, 
@@ -76,7 +77,7 @@ contract('KeyFi contracts', (accounts) => {
     )
   })
 
-  it('sets KEY staking properly', async () => {
+  xit('sets KEY staking properly', async () => {
     //await staking.set
   })
 
@@ -89,9 +90,9 @@ contract('KeyFi contracts', (accounts) => {
     await keyfi.transfer(rewardsWallet, web3.utils.toWei('6000000'), { from: allocator })
     await keyfi.transfer(teamVesting.address, teamVestingAmount, { from: allocator })
     await keyfi.transfer(treasuryVesting.address, treasuryVestingAmount, { from: allocator })
-    await keyfi.transfer(teamWallet, web3.utils.toWei('41667'))
-    await keyfi.transfer(treasuryWallet, web3.utils.toWei('41667'))
-    assert.equal(await keyfi.balanceOf(staking.address), initialRewardPoolAmount)
+    await keyfi.transfer(teamWallet, web3.utils.toWei('41667'), { from: allocator })
+    await keyfi.transfer(treasuryWallet, web3.utils.toWei('41667'), { from: allocator })
+    assert.equal(Number(await keyfi.balanceOf(staking.address)), initialRewardPoolAmount)
   })
 })
 

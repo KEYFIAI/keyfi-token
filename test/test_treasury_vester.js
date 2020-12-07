@@ -7,7 +7,7 @@ const TreasuryVester = artifacts.require('TreasuryVester.sol');
 const day = 86400
 const year = day * 365
 
-contract('TreasuryVester', ([minter, team, recipient]) => {
+contract('TreasuryVester', ([minter, team, joe]) => {
   let keyfi, vesting
   let begin, cliff, end
   let amount = web3.utils.toWei('958333')
@@ -39,24 +39,24 @@ contract('TreasuryVester', ([minter, team, recipient]) => {
   })
 
   it('allows recipient address to change to a new address', async () => {
-    await assertThrows(vesting.setRecipient(recipient, { from: minter }))
-    await vesting.setRecipient(recipient, { from: team })
-    assert.equal(await vesting.recipient(), recipient)
+    await assertThrows(vesting.setRecipient(joe, { from: minter }))
+    await vesting.setRecipient(joe, { from: team })
+    assert.equal(await vesting.recipient(), joe)
   })
 
   it('allows claiming vested tokens', async () => {
     await assertThrows(vesting.claim())   // cannot claim before cliff
-    assert.equal(await vesting.recipient(), recipient)
+    assert.equal(await vesting.recipient(), joe)
     time.increaseTo(cliff)
     let tx = await vesting.claim()
 
     time.increase(year)
     tx = await vesting.claim()
-    console.log("recipient balance after 1 year = " + web3.utils.fromWei(await keyfi.balanceOf(recipient)))
+    console.log("recipient balance after 1 year = " + web3.utils.fromWei(await keyfi.balanceOf(joe)))
     
     time.increase(year)
     tx = await vesting.claim()
     // recipient was able to claim all the treasury tokens after 2 years
-    assert.equal(Number(await keyfi.balanceOf(recipient)), amount)
+    assert.equal(Number(await keyfi.balanceOf(joe)), amount)
   })
 });

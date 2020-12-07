@@ -10,7 +10,7 @@ contract('KeyfiToken', ([admin, alice, bobTheBurner, dave, minter, someone]) => 
   let keyfi
 
   before(async () => {
-    keyfi = await KeyfiToken.new(admin, admin, 0)
+    keyfi = await KeyfiToken.new(admin, minter, 0)
     await keyfi.transfer(alice, '5000000000000000000000000', { from: admin })
   })
 
@@ -44,14 +44,14 @@ contract('KeyfiToken', ([admin, alice, bobTheBurner, dave, minter, someone]) => 
 
   it('should allow token holders to burn', async () => {
     await keyfi.burn('5000000000000000000000000', { from: admin })
-    assert.equal(await keyfi.totalSupply(), '5300000000000000000000000')
+    assert.equal(Number(await keyfi.totalSupply()), '5300000000000000000000000')
   })
 
   it('should allow approved addresses to burnFrom', async () => {
     await keyfi.approve(bobTheBurner, '99999999999999999', { from: alice })
     await keyfi.burnFrom(alice, 1, { from: bobTheBurner })
-    assert.equal(await keyfi.totalSupply(), '5299999999999999999999999')
-    assert.equal(await keyfi.balanceOf(alice), '4999999999999999999999999')
+    assert.equal(Number(await keyfi.totalSupply()), '5299999999999999999999999')
+    assert.equal(Number(await keyfi.balanceOf(alice)), '4999999999999999999999999')
   })
 })
 
