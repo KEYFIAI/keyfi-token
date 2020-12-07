@@ -2,7 +2,7 @@ let KeyfiToken = artifacts.require('KeyfiToken.sol')
 let RewardPool = artifacts.require('RewardPool.sol')
 let TreasuryVester = artifacts.require('TreasuryVester.sol')
 
-let whitelist = '0xc3faa8e87cd7b3678fa10c0f9638eb4ba7da20c'
+let whitelist = '0xc3faa8e87cd7b3678fa10c0f9638eb4ba7da20c5'
 let account = '0xFdb6ac6750690D9c46d038f2536eC995D9d3D6d8'
 let minter =  '0x0000000000000000000000000000000000000000'
 let mintingAllowedAfter = 1654689600    // 06/08/2022 @ 12:00pm (UTC)
