@@ -134,8 +134,7 @@ contract RewardPool is Ownable {
         view 
         returns (bool) 
     {
-        require(stakingTokenIndexes[address(_token)].added, "token does not exist in list");
-        return true;
+        return stakingTokenIndexes[address(_token)].added;
     }
 
     /**

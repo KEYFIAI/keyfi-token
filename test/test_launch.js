@@ -89,9 +89,9 @@ contract('KeyFi contracts', (accounts) => {
     await keyfi.transfer(rewardsWallet, web3.utils.toWei('6000000'), { from: allocator })
     await keyfi.transfer(teamVesting.address, teamVestingAmount, { from: allocator })
     await keyfi.transfer(treasuryVesting.address, treasuryVestingAmount, { from: allocator })
-
+    await keyfi.transfer(teamWallet, web3.utils.toWei('41667'))
+    await keyfi.transfer(treasuryWallet, web3.utils.toWei('41667'))
     assert.equal(await keyfi.balanceOf(staking.address), initialRewardPoolAmount)
   })
-
 })
 
