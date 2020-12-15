@@ -37,12 +37,13 @@ module.exports = async function(callback) {
   let totalLPstake = await LPtoken.methods.balanceOf(stakingAddress).call()
   let currentBlock = await web3.eth.getBlockNumber()
 
-  /*console.log("current block = " + currentBlock)
+  console.log("current block = " + currentBlock)
   console.log("Total KEY balance: " + totalKEYstake)
-  console.log("Total LP balance: " + totalLPstake)*/
+  console.log("Total LP balance: " + totalLPstake)
 
   /**
    * Reward estimation for arbitrary period and stake amounts
+   * Estimates rewards after user stakes new tokens (it would change the current stake balance)
    */
   // User inputs (estimates rewards for arbitrary period and stake amounts)
   let days = 30                                 // <-------------- USER INPUT
@@ -53,10 +54,11 @@ module.exports = async function(callback) {
   let periodEnd = currentBlock + period
 
   // reward calculation for unstaked tokens
-  let rewardKEY = (userKEYstake / (totalKEYstake + userKEYstake)) * KEYweight * getMultiplier(currentBlock, periodEnd)
-  let rewardLP = (userLPstake / (totalLPstake + userLPstake)) * LPweight * getMultiplier(currentBlock, periodEnd)
+  let rewardKEY = (userKEYstake / (Number(totalKEYstake) + Number(userKEYstake))) * KEYweight * getMultiplier(currentBlock, periodEnd)
+  let rewardLP = (userLPstake / (Number(totalLPstake) + Number(userLPstake))) * LPweight * getMultiplier(currentBlock, periodEnd)
   output = rewardKEY + rewardLP
-  console.log('estimated reward for given period = ' + output + ' KEYFI')
+  console.log('estimated reward for given period after staking = ' + output + ' KEYFI')
+  
   /**/
   /**
    * Reward rate calculation for current user stake balance
@@ -65,17 +67,19 @@ module.exports = async function(callback) {
 
   let userKEYbalance = await staking.methods.getBalance(KEYtokenAddress).call({ from: userAddress })
   let userLPbalance = await staking.methods.getBalance(LPtokenAddress).call({ from: userAddress })
-  console.log("my KEY balance = " + userKEYbalance)
-  console.log("my LP balance = " + userLPbalance)
+  //console.log("my KEY balance = " + userKEYbalance)
+  //console.log("my LP balance = " + userLPbalance)
   let rewardKEYblock = (userKEYbalance / totalKEYstake) * KEYweight * getMultiplier(currentBlock, currentBlock + 1)
   let rewardLPblock = (userLPbalance / totalLPstake) * LPweight * getMultiplier(currentBlock, currentBlock + 1)
 
   userRate = rewardKEYblock + rewardLPblock
-  console.log('current reward rate (KEYFI per block) for user = ' + userRate)
-  console.log('estimated reward for ' + days + ' days according to user stake = ' + userRate * getMultiplier(currentBlock, periodEnd))
+  console.log('current reward rate for user = ' + userRate + ' KEYFI per block')
+
+  let estimatedRewardKEY = (userKEYbalance / totalKEYstake) * KEYweight * getMultiplier(currentBlock, periodEnd)
+  let estimatedRewardLP = (userLPbalance / totalLPstake) * LPweight * getMultiplier(currentBlock, periodEnd)
+  console.log("estimated KEYFI rewards for " + days + " days = " + estimatedRewardKEY + estimatedRewardLP + ' KEYFI')
   /**/
 
   console.log('DONE')
   callback()
 }
-
