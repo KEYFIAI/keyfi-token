@@ -15,7 +15,7 @@ let rewardPerBlock = web3.utils.toWei('1') //"1000000000000000000" // 1 token pe
 let launchDate = 1607428800
 
 let vestingAmount = web3.utils.toWei('958333')
-let begin = launchDate 
+let begin = 9999999999 //launchDate 
 let cliff = begin
 let end = begin + (31536000 * 2)  // 2 years after launch
 
@@ -24,7 +24,7 @@ let teamWallet = '0xb47dBbe6a44e819D82AAA1Ca97BD9B2f8F45A1a4'
 
 module.exports = async deployer => {
 	return deployer.deploy(KeyfiToken, account, minter, mintingAllowedAfter).then( () => {
-    return deployer.deploy(RewardPool, KeyfiToken.address, rewardPerBlock, startBlock, bonusEndBlock, multiplier, whitelist, launchDate).then(() => {
+    return deployer.deploy(RewardPool, KeyfiToken.address, rewardPerBlock, startBlock, bonusEndBlock, multiplier, launchDate).then(() => {
       return deployer.deploy(TreasuryVester, KeyfiToken.address, teamWallet, vestingAmount, begin, cliff, end).then(()=> {
         return deployer.deploy(TreasuryVester, KeyfiToken.address, treasuryWallet, vestingAmount, begin, cliff, end)
       })

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./KeyfiToken.sol";
-import "./Whitelist.sol";
+//import "./Whitelist.sol";
 
  /**
  * @title RewardPool
@@ -51,7 +51,7 @@ contract RewardPool is Ownable {
     uint256 public immutable bonusEndBlock;                   // Block number when bonus reward period ends
     uint256 public immutable bonusMultiplier;  // Bonus muliplier for early users
     uint256 public rewardPerBlock;                  // reward tokens distributed per block
-    Whitelist public whitelist;
+    //Whitelist public whitelist;
 
     StakingToken[] public stakingTokens;                                    // Info of each pool
     mapping(address => TokenIndex) public stakingTokenIndexes;
@@ -75,7 +75,7 @@ contract RewardPool is Ownable {
         uint256 _startBlock,
         uint256 _bonusEndBlock,
         uint256 _bonusMultiplier,
-        Whitelist _whitelist,
+        //Whitelist _whitelist,
         uint256 _launchDate
     ) 
     {
@@ -84,7 +84,7 @@ contract RewardPool is Ownable {
         bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
         bonusMultiplier = _bonusMultiplier;
-        whitelist = _whitelist;
+        //whitelist = _whitelist;
         launchDate = _launchDate;
     }
 
@@ -281,7 +281,7 @@ contract RewardPool is Ownable {
         public 
     {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
-        require(whitelist.isWhitelisted(msg.sender), "sender address is not eligible");
+        //require(whitelist.isWhitelisted(msg.sender), "sender address is not eligible");
         require(block.timestamp >= launchDate, "deposits are not enabled yet");
         
         uint256 _pid = stakingTokenIndexes[address(_token)].index;
@@ -335,9 +335,8 @@ contract RewardPool is Ownable {
 
         user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
 
-        if(whitelist.isWhitelisted(msg.sender)) {
-            safeRewardTransfer(msg.sender, pending);
-        }
+        //if(whitelist.isWhitelisted(msg.sender)) {
+        safeRewardTransfer(msg.sender, pending);
         
         if(_amount > 0) {
             pool.stakingToken.safeTransfer(address(msg.sender), _amount);
@@ -367,10 +366,10 @@ contract RewardPool is Ownable {
 
         user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
 
-        if(whitelist.isWhitelisted(msg.sender)) {
-            safeRewardTransfer(msg.sender, pending);
-            emit WithdrawRewards(msg.sender, pending);
-        }
+        //if(whitelist.isWhitelisted(msg.sender)) {
+        safeRewardTransfer(msg.sender, pending);
+        emit WithdrawRewards(msg.sender, pending);
+        
     }
 
     /**

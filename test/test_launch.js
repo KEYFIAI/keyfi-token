@@ -56,7 +56,7 @@ contract('KeyFi contracts', (accounts) => {
       startBlock, 
       bonusEndBlock, 
       multiplier,
-      whitelist.address,
+      //whitelist.address,
       launchDate
     )
     teamVesting = await TreasuryVester.new(

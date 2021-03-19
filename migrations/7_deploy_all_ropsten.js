@@ -12,10 +12,10 @@ let rewardPerBlock = web3.utils.toWei('1') //"1000000000000000000" // 1 token pe
 let launchDate = 1607427000
 
 let amount = web3.utils.toWei('958333')
-let begin = launchDate 
+let begin = 9999999999//launchDate 
 let cliff = begin
-//let end = begin + (year * 2)
-let end = 1607428800//begin + 1800
+let end = begin + (31536000 * 2)
+//let end = 1607428800//begin + 1800
 
 let teamWallet = '0x856bcd7F92436F749Af98DE309785A42F747B79a'
 let treasuryWallet = '0xe83E4e869dD693349B0c8F2755EbD46169CA5b75'
@@ -23,7 +23,7 @@ let treasuryWallet = '0xe83E4e869dD693349B0c8F2755EbD46169CA5b75'
 
 module.exports = async deployer => {
 	return deployer.deploy(KeyfiToken, account, minter, mintingAllowedAfter).then( () => {
-    return deployer.deploy(RewardPool, KeyfiToken.address, rewardPerBlock, 0, 0, 3, whitelist, launchDate).then(() => {
+    return deployer.deploy(RewardPool, KeyfiToken.address, rewardPerBlock, 0, 0, 3, launchDate).then(() => {
       return deployer.deploy(TreasuryVester, KeyfiToken.address, teamWallet, amount, begin, cliff, end).then(()=> {
         return deployer.deploy(TreasuryVester, KeyfiToken.address, treasuryWallet, amount, begin, cliff, end)
       })

@@ -9,5 +9,5 @@ let launchDate = 1607428800
 
 module.exports = async deployer => {
   
-  return deployer.deploy(RewardPool, tokenAddress, rewardPerBlock, startBlock, endBonus, multiplier, whitelist, launchDate)
+  return deployer.deploy(RewardPool, tokenAddress, rewardPerBlock, startBlock, endBonus, multiplier, launchDate)
 }
