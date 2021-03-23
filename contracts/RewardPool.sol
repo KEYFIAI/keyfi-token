@@ -51,7 +51,7 @@ contract RewardPool is Ownable {
     uint256 public immutable bonusEndBlock;                   // Block number when bonus reward period ends
     uint256 public immutable bonusMultiplier;  // Bonus muliplier for early users
     uint256 public rewardPerBlock;                  // reward tokens distributed per block
-    //Whitelist public whitelist;
+    uint256 public totalKeyfiStake;
 
     StakingToken[] public stakingTokens;                                    // Info of each pool
     mapping(address => TokenIndex) public stakingTokenIndexes;
@@ -68,6 +68,7 @@ contract RewardPool is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event RewardPerBlockChanged(uint256 previousRate, uint256 newRate);
     event SetAllocPoint(address token, uint256 allocPoints);
+    event InsufficientRewardpool();
 
     constructor(
         KeyfiToken _rewardToken,
@@ -75,7 +76,6 @@ contract RewardPool is Ownable {
         uint256 _startBlock,
         uint256 _bonusEndBlock,
         uint256 _bonusMultiplier,
-        //Whitelist _whitelist,
         uint256 _launchDate
     ) 
     {
@@ -84,7 +84,6 @@ contract RewardPool is Ownable {
         bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
         bonusMultiplier = _bonusMultiplier;
-        //whitelist = _whitelist;
         launchDate = _launchDate;
     }
 
@@ -105,9 +104,7 @@ contract RewardPool is Ownable {
         public 
         onlyOwner 
     {
-        // since owner is able to arbitrarily withdraw reward tokens from the contract
-        // it doesn't allow using the same reward token as a staking token
-        require(address(_stakingToken) != address(rewardToken), "cannot add reward token as staking token");
+        //require(address(_stakingToken) != address(rewardToken), "cannot add reward token as staking token");
         require(!stakingTokenIndexes[address(_stakingToken)].added, "staking token already exists in array");
 
         massUpdateTokens();
@@ -281,7 +278,6 @@ contract RewardPool is Ownable {
         public 
     {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
-        //require(whitelist.isWhitelisted(msg.sender), "sender address is not eligible");
         require(block.timestamp >= launchDate, "deposits are not enabled yet");
         
         uint256 _pid = stakingTokenIndexes[address(_token)].index;
@@ -291,17 +287,25 @@ contract RewardPool is Ownable {
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
         user.amount = user.amount.add(_amount);
 
-        uint256 rewardBal = rewardToken.balanceOf(address(this));
+        uint256 rewardBal = getAvailableRewardBalance();
         uint256 diff = 0;
 
         if (rewardBal < pending) {
             diff = pending.sub(rewardBal);
+            emit InsufficientRewardpool();
         }
 
         user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
         
         safeRewardTransfer(msg.sender, pending);
+
         if (_amount > 0) {
+            
+            // If user is staking KEYFI, update the counter
+            if(address(_token) == address(rewardToken)) {
+                totalKeyfiStake = totalKeyfiStake.add(_amount);
+            }
+
             pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
             emit Deposit(msg.sender, _pid, _amount);
         }
@@ -326,19 +330,25 @@ contract RewardPool is Ownable {
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
         user.amount = user.amount.sub(_amount);
 
-        uint256 rewardBal = rewardToken.balanceOf(address(this));
+        uint256 rewardBal = getAvailableRewardBalance();
         uint256 diff = 0;
         
         if (rewardBal < pending) {
             diff = pending.sub(rewardBal);
+            emit InsufficientRewardpool();
         }
 
         user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
 
-        //if(whitelist.isWhitelisted(msg.sender)) {
         safeRewardTransfer(msg.sender, pending);
         
         if(_amount > 0) {
+
+            // If user was staking KEYFI, update the counter
+            if(address(_token) == address(rewardToken)) {
+                totalKeyfiStake = totalKeyfiStake.sub(_amount);
+            }
+
             pool.stakingToken.safeTransfer(address(msg.sender), _amount);
             emit Withdraw(msg.sender, _pid, _amount);
         }
@@ -357,16 +367,16 @@ contract RewardPool is Ownable {
 
         checkpoint(_pid);
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
-        uint256 rewardBal = rewardToken.balanceOf(address(this));
+        uint256 rewardBal = getAvailableRewardBalance();
         uint256 diff = 0;
         
         if (rewardBal < pending) {
             diff = pending.sub(rewardBal);
+            emit InsufficientRewardpool();
         }
 
         user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
 
-        //if(whitelist.isWhitelisted(msg.sender)) {
         safeRewardTransfer(msg.sender, pending);
         emit WithdrawRewards(msg.sender, pending);
         
@@ -404,7 +414,7 @@ contract RewardPool is Ownable {
     function safeRewardTransfer(address _to, uint256 _amount)
         internal 
     {
-        uint256 rewardBal = rewardToken.balanceOf(address(this));
+        uint256 rewardBal = getAvailableRewardBalance();
         if (_amount > 0) {
             if (_amount > rewardBal) {
                 rewardToken.transfer(_to, rewardBal);
@@ -412,6 +422,14 @@ contract RewardPool is Ownable {
                 rewardToken.transfer(_to, _amount);
             }
         }
+    }
+
+    function getAvailableRewardBalance() 
+        public
+        view
+        returns (uint256)
+    {
+        return rewardToken.balanceOf(address(this)).sub(totalKeyfiStake);
     }
 
     /**
@@ -423,7 +441,7 @@ contract RewardPool is Ownable {
         view
         returns (uint256)
     {
-        uint256 balance = rewardToken.balanceOf(address(this));
+        uint256 balance = getAvailableRewardBalance();
         return balance.div(rewardPerBlock);
     }
 }
