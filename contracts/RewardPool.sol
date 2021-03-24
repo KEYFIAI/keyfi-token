@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./KeyfiToken.sol";
-import "./Whitelist.sol";
+//import "./Whitelist.sol";
 
  /**
  * @title RewardPool
@@ -40,6 +40,7 @@ contract RewardPool is Ownable {
         uint256 allocPoint;             // How many allocation points assigned to this token
         uint256 lastRewardBlock;        // Last block number that reward distribution occurred
         uint256 accRewardPerShare;      // Accumulated reward per share, times 1e12.
+        uint16 depositFeeBP;      // Deposit fee in basis points
     }
 
     struct TokenIndex {
@@ -51,7 +52,10 @@ contract RewardPool is Ownable {
     uint256 public immutable bonusEndBlock;                   // Block number when bonus reward period ends
     uint256 public immutable bonusMultiplier;  // Bonus muliplier for early users
     uint256 public rewardPerBlock;                  // reward tokens distributed per block
-    Whitelist public whitelist;
+    uint256 public totalKeyfiStake;
+    // Deposit Fee address
+    address public feeAddBb = 0x2a9aC1Cab57d80e5E3c4574330863d54Ae311C68;
+    address public feeAddSt = 0x2a9aC1Cab57d80e5E3c4574330863d54Ae311C68;
 
     StakingToken[] public stakingTokens;                                    // Info of each pool
     mapping(address => TokenIndex) public stakingTokenIndexes;
@@ -68,6 +72,9 @@ contract RewardPool is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event RewardPerBlockChanged(uint256 previousRate, uint256 newRate);
     event SetAllocPoint(address token, uint256 allocPoints);
+    event InsufficientRewardpool();
+    event SetFeeAddressBb(address indexed user, address indexed newAddress);
+    event SetFeeAddressSt(address indexed user, address indexed newAddress);
 
     constructor(
         KeyfiToken _rewardToken,
@@ -75,7 +82,6 @@ contract RewardPool is Ownable {
         uint256 _startBlock,
         uint256 _bonusEndBlock,
         uint256 _bonusMultiplier,
-        Whitelist _whitelist,
         uint256 _launchDate
     ) 
     {
@@ -84,7 +90,6 @@ contract RewardPool is Ownable {
         bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
         bonusMultiplier = _bonusMultiplier;
-        whitelist = _whitelist;
         launchDate = _launchDate;
     }
 
@@ -101,14 +106,13 @@ contract RewardPool is Ownable {
      * @param _allocPoint — The "weight" of this token in relation to other allowed tokens.
      * @param _stakingToken — The token to be added.
      */
-    function addStakingToken(uint256 _allocPoint, IERC20 _stakingToken) 
+    function addStakingToken(uint256 _allocPoint, IERC20 _stakingToken, uint16 _depositFeeBP) 
         public 
         onlyOwner 
     {
-        // since owner is able to arbitrarily withdraw reward tokens from the contract
-        // it doesn't allow using the same reward token as a staking token
-        require(address(_stakingToken) != address(rewardToken), "cannot add reward token as staking token");
+        //require(address(_stakingToken) != address(rewardToken), "cannot add reward token as staking token");
         require(!stakingTokenIndexes[address(_stakingToken)].added, "staking token already exists in array");
+        require(_depositFeeBP <= 400, "add: invalid deposit fee basis points");
 
         massUpdateTokens();
         uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
@@ -117,7 +121,8 @@ contract RewardPool is Ownable {
             stakingToken: _stakingToken,
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
-            accRewardPerShare: 0
+            accRewardPerShare: 0,
+            depositFeeBP : _depositFeeBP
         }));
 
         stakingTokenIndexes[address(_stakingToken)] = TokenIndex({
@@ -142,12 +147,13 @@ contract RewardPool is Ownable {
      * @param _token — The token to be configured.
      * @param _allocPoint — The allocation points set to this token
      */
-    function setAllocPoint(IERC20 _token, uint256 _allocPoint) 
+    function setAllocPoint(IERC20 _token, uint256 _allocPoint, uint16 _depositFeeBP) 
         public 
         onlyOwner 
     {
         require(stakingTokenIndexes[address(_token)].added, "token does not exist in list");
         //require(_allocPoint > 0, "allocation points must be greater than zero");
+        require(_depositFeeBP <= 400, "set: invalid deposit fee basis points");
 
         massUpdateTokens();
         uint256 index = stakingTokenIndexes[address(_token)].index;
@@ -259,7 +265,7 @@ contract RewardPool is Ownable {
         pool.lastRewardBlock = block.number;
     }
 
-    // GET STAKED TOKEN BALNCE
+    // GET STAKED TOKEN BALANCE
     function getBalance(IERC20 _token) 
         external 
         view 
@@ -281,7 +287,6 @@ contract RewardPool is Ownable {
         public 
     {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
-        require(whitelist.isWhitelisted(msg.sender), "sender address is not eligible");
         require(block.timestamp >= launchDate, "deposits are not enabled yet");
         
         uint256 _pid = stakingTokenIndexes[address(_token)].index;
@@ -291,18 +296,35 @@ contract RewardPool is Ownable {
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
         user.amount = user.amount.add(_amount);
 
-        uint256 rewardBal = rewardToken.balanceOf(address(this));
+        uint256 rewardBal = getAvailableRewardBalance();
         uint256 diff = 0;
 
         if (rewardBal < pending) {
             diff = pending.sub(rewardBal);
+            emit InsufficientRewardpool();
         }
 
-        user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
-        
         safeRewardTransfer(msg.sender, pending);
+
         if (_amount > 0) {
             pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
+
+            // If user is staking KEYFI, update the counter
+            if (address(_token) == address(rewardToken)) {
+                totalKeyfiStake = totalKeyfiStake.add(_amount);
+            }
+
+            if (pool.depositFeeBP > 0) {
+                uint256 depositFee = _amount.mul(pool.depositFeeBP).div(10000);
+                uint256 depositeFeeHalf = depositFee.div(2);
+                pool.lpToken.safeTransfer(feeAddBb, depositeFeeHalf);
+                pool.lpToken.safeTransfer(feeAddSt, depositeFeeHalf);
+                user.amount = user.amount.add(_amount).sub(depositFee);
+            } else {
+                user.amount = user.amount.add(_amount);
+            }
+            
+            user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
             emit Deposit(msg.sender, _pid, _amount);
         }
     }
@@ -326,26 +348,31 @@ contract RewardPool is Ownable {
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
         user.amount = user.amount.sub(_amount);
 
-        uint256 rewardBal = rewardToken.balanceOf(address(this));
+        uint256 rewardBal = getAvailableRewardBalance();
         uint256 diff = 0;
         
         if (rewardBal < pending) {
             diff = pending.sub(rewardBal);
+            emit InsufficientRewardpool();
         }
 
         user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
 
-        if(whitelist.isWhitelisted(msg.sender)) {
-            safeRewardTransfer(msg.sender, pending);
-        }
+        safeRewardTransfer(msg.sender, pending);
         
         if(_amount > 0) {
+
+            // If user was staking KEYFI, update the counter
+            if(address(_token) == address(rewardToken)) {
+                totalKeyfiStake = totalKeyfiStake.sub(_amount);
+            }
+
             pool.stakingToken.safeTransfer(address(msg.sender), _amount);
             emit Withdraw(msg.sender, _pid, _amount);
         }
     }
 
-    // WITHDRAW TOKENS ONLY
+    // WITHDRAW REWARDS TOKENS ONLY (Leave deposit staked)
     function withdrawRewards(IERC20 _token)
         public
     {
@@ -358,19 +385,19 @@ contract RewardPool is Ownable {
 
         checkpoint(_pid);
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
-        uint256 rewardBal = rewardToken.balanceOf(address(this));
+        uint256 rewardBal = getAvailableRewardBalance();
         uint256 diff = 0;
         
         if (rewardBal < pending) {
             diff = pending.sub(rewardBal);
+            emit InsufficientRewardpool();
         }
 
         user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
 
-        if(whitelist.isWhitelisted(msg.sender)) {
-            safeRewardTransfer(msg.sender, pending);
-            emit WithdrawRewards(msg.sender, pending);
-        }
+        safeRewardTransfer(msg.sender, pending);
+        emit WithdrawRewards(msg.sender, pending);
+        
     }
 
     /**
@@ -405,7 +432,7 @@ contract RewardPool is Ownable {
     function safeRewardTransfer(address _to, uint256 _amount)
         internal 
     {
-        uint256 rewardBal = rewardToken.balanceOf(address(this));
+        uint256 rewardBal = getAvailableRewardBalance();
         if (_amount > 0) {
             if (_amount > rewardBal) {
                 rewardToken.transfer(_to, rewardBal);
@@ -413,6 +440,15 @@ contract RewardPool is Ownable {
                 rewardToken.transfer(_to, _amount);
             }
         }
+    }
+
+    // User this to determine the difference betweem the reward tokens balance and user deposits (KEYFI)
+    function getAvailableRewardBalance() 
+        public
+        view
+        returns (uint256)
+    {
+        return rewardToken.balanceOf(address(this)).sub(totalKeyfiStake);
     }
 
     /**
@@ -424,7 +460,20 @@ contract RewardPool is Ownable {
         view
         returns (uint256)
     {
-        uint256 balance = rewardToken.balanceOf(address(this));
+        uint256 balance = getAvailableRewardBalance();
         return balance.div(rewardPerBlock);
     }
+
+    function setFeeAddressBb(address _feeAddress) public {
+        require(msg.sender == feeAddBb, "setFeeAddress: FORBIDDEN");
+        feeAddBb = _feeAddress;
+        emit SetFeeAddressBb(msg.sender, _feeAddress);
+    }
+
+    function setFeeAddressSt(address _feeAddress) public {
+        require(msg.sender == feeAddSt, "setFeeAddress: FORBIDDEN");
+        feeAddSt = _feeAddress;
+        emit SetFeeAddressSt(msg.sender, _feeAddress);
+    }
+
 }

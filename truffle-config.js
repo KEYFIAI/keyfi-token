@@ -40,7 +40,7 @@ module.exports = {
       network_id: 1,
       //from: addresses[0],
       gas: 5000000,
-      gasPrice: 48000000000, // 40 gwei
+      gasPrice: 200000000000, // 200 gwei
       //skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
     }
     // Useful for private networks
@@ -61,7 +61,7 @@ module.exports = {
   // Configure your compilers
   compilers: {
     solc: {
-      version: ">=0.6.0"    // Fetch exact version from solc-bin (default: truffle's version)
+      version: "^0.7.0"    // Fetch exact version from solc-bin (default: truffle's version)
       // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
       // settings: {          // See the solidity docs for advice about optimization and evmVersion
       //  optimizer: {

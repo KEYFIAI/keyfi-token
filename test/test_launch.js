@@ -25,9 +25,9 @@ contract('KeyFi contracts', (accounts) => {
   const day = 86400
   const year = day * 365
 
-  const launchDate = 1607428800
+  const launchDate = 1907428800
   
-  const mintingAllowedAfter = 1654689600    // 06/08/2022 @ 12:00pm (UTC)
+  const mintingAllowedAfter = 1994689600    // 06/08/2022 @ 12:00pm (UTC)
   const rewardPerBlock = web3.utils.toWei('1')  // 1 token per block
   const startBlock = 11412110
   const bonusEndBlock = startBlock + 193680   // approx 1 month after start
@@ -56,7 +56,6 @@ contract('KeyFi contracts', (accounts) => {
       startBlock, 
       bonusEndBlock, 
       multiplier,
-      whitelist.address,
       launchDate
     )
     teamVesting = await TreasuryVester.new(
