@@ -304,12 +304,11 @@ contract RewardPool is Ownable {
             emit InsufficientRewardpool();
         }
 
-        user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
-        
         safeRewardTransfer(msg.sender, pending);
 
         if (_amount > 0) {
-            
+            pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
+
             // If user is staking KEYFI, update the counter
             if (address(_token) == address(rewardToken)) {
                 totalKeyfiStake = totalKeyfiStake.add(_amount);
@@ -324,8 +323,8 @@ contract RewardPool is Ownable {
             } else {
                 user.amount = user.amount.add(_amount);
             }
-
-            pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
+            
+            user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
             emit Deposit(msg.sender, _pid, _amount);
         }
     }
