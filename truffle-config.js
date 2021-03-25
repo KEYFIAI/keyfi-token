@@ -4,7 +4,8 @@ const HDWalletProvider = require('truffle-hdwallet-provider')
 const MNEMONIC = process.env.SK_DEPLOY_WALLET_KEY
 const MainnetProvider = new HDWalletProvider(MNEMONIC, "https://mainnet.infura.io/v3/" + process.env.SK_DEPLOY_INFURA_KEY)
 const RopstenProvider = new HDWalletProvider(MNEMONIC, "https://ropsten.infura.io/v3/" + process.env.SK_DEPLOY_INFURA_KEY)
-
+const BSCTestnetProvider = new HDWalletProvider(MNEMONIC, `https://data-seed-prebsc-1-s1.binance.org:8545`)
+const BSCMainnetProvider = new HDWalletProvider(MNEMONIC, `https://bsc-dataseed1.binance.org`)
 
 module.exports = {
   networks: {
@@ -42,6 +43,20 @@ module.exports = {
       gas: 5000000,
       gasPrice: 200000000000, // 200 gwei
       //skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
+    },
+    testnet: {
+      provider: () => BSCTestnetProvider,
+      network_id: 97,
+      // confirmations: 10,
+      // timeoutBlocks: 200,
+      // skipDryRun: true
+    },
+    bsc: {
+      provider: () => BSCMainnetProvider,
+      network_id: 56,
+      // confirmations: 10,
+      // timeoutBlocks: 200,
+      // skipDryRun: true
     }
     // Useful for private networks
     // private: {
