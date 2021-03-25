@@ -40,7 +40,7 @@ contract RewardPool is Ownable {
         uint256 allocPoint;             // How many allocation points assigned to this token
         uint256 lastRewardBlock;        // Last block number that reward distribution occurred
         uint256 accRewardPerShare;      // Accumulated reward per share, times 1e12.
-        uint16 depositFeeBP;      // Deposit fee in basis points
+        uint16 depositFeeBP;            // Deposit fee in basis points
     }
 
     struct TokenIndex {
@@ -49,13 +49,13 @@ contract RewardPool is Ownable {
     }
 
     KeyfiToken public immutable rewardToken;
-    uint256 public immutable bonusEndBlock;                   // Block number when bonus reward period ends
+    uint256 public immutable bonusEndBlock;    // Block number when bonus reward period ends
     uint256 public immutable bonusMultiplier;  // Bonus muliplier for early users
-    uint256 public rewardPerBlock;                  // reward tokens distributed per block
+    uint256 public rewardPerBlock;             // reward tokens distributed per block
     uint256 public totalKeyfiStake;
     // Deposit Fee address
-    address public feeAddBb = 0x2a9aC1Cab57d80e5E3c4574330863d54Ae311C68;
-    address public feeAddSt = 0x2a9aC1Cab57d80e5E3c4574330863d54Ae311C68;
+    address public feeAddA = 0xBff76b1Ab7A545EdB58feB4068A5737AAf3a102c;
+    address public feeAddB = 0x5BEBAFE58FC8b87a03Bd39bC147a7fb53e4FABd5;
 
     StakingToken[] public stakingTokens;                                    // Info of each pool
     mapping(address => TokenIndex) public stakingTokenIndexes;
@@ -73,8 +73,8 @@ contract RewardPool is Ownable {
     event RewardPerBlockChanged(uint256 previousRate, uint256 newRate);
     event SetAllocPoint(address token, uint256 allocPoints);
     event InsufficientRewardpool();
-    event SetFeeAddressBb(address indexed user, address indexed newAddress);
-    event SetFeeAddressSt(address indexed user, address indexed newAddress);
+    event SetFeeAddressA(address indexed user, address indexed newAddress);
+    event SetFeeAddressB(address indexed user, address indexed newAddress);
 
     constructor(
         KeyfiToken _rewardToken,
@@ -294,7 +294,6 @@ contract RewardPool is Ownable {
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
-        user.amount = user.amount.add(_amount);
 
         uint256 rewardBal = getAvailableRewardBalance();
         uint256 diff = 0;
@@ -309,21 +308,25 @@ contract RewardPool is Ownable {
         if (_amount > 0) {
             pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
 
-            // If user is staking KEYFI, update the counter
-            if (address(_token) == address(rewardToken)) {
-                totalKeyfiStake = totalKeyfiStake.add(_amount);
-            }
-
             if (pool.depositFeeBP > 0) {
                 uint256 depositFee = _amount.mul(pool.depositFeeBP).div(10000);
-                uint256 depositeFeeHalf = depositFee.div(2);
-                pool.lpToken.safeTransfer(feeAddBb, depositeFeeHalf);
-                pool.lpToken.safeTransfer(feeAddSt, depositeFeeHalf);
+                uint256 depositFeeHalf = depositFee.div(2);
+                pool.stakingToken.safeTransfer(feeAddA, depositFeeHalf);
+                pool.stakingToken.safeTransfer(feeAddB, depositFeeHalf);
+                
+                // If user is staking KEYFI, update the counter
+                if (address(_token) == address(rewardToken)) {
+                    totalKeyfiStake = totalKeyfiStake.add(_amount).sub(depositFee);
+                }
                 user.amount = user.amount.add(_amount).sub(depositFee);
+        
             } else {
+                if (address(_token) == address(rewardToken)) {
+                    totalKeyfiStake = totalKeyfiStake.add(_amount);
+                }
                 user.amount = user.amount.add(_amount);
             }
-            
+
             user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
             emit Deposit(msg.sender, _pid, _amount);
         }
@@ -464,16 +467,20 @@ contract RewardPool is Ownable {
         return balance.div(rewardPerBlock);
     }
 
-    function setFeeAddressBb(address _feeAddress) public {
-        require(msg.sender == feeAddBb, "setFeeAddress: FORBIDDEN");
-        feeAddBb = _feeAddress;
-        emit SetFeeAddressBb(msg.sender, _feeAddress);
+    function setFeeAddressA(address _feeAddress) 
+        public
+        onlyOwner
+    {
+        feeAddA = _feeAddress;
+        emit SetFeeAddressA(msg.sender, _feeAddress);
     }
 
-    function setFeeAddressSt(address _feeAddress) public {
-        require(msg.sender == feeAddSt, "setFeeAddress: FORBIDDEN");
-        feeAddSt = _feeAddress;
-        emit SetFeeAddressSt(msg.sender, _feeAddress);
+    function setFeeAddressB(address _feeAddress) 
+        public
+        onlyOwner
+    {
+        feeAddB = _feeAddress;
+        emit SetFeeAddressB(msg.sender, _feeAddress);
     }
 
 }

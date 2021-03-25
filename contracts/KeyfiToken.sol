@@ -13,7 +13,7 @@ contract KeyfiToken is IERC20, Ownable {
     string public constant name = "KeyFi Token";
     string public constant symbol = "KEYFI";
     uint8 public constant decimals = 18;
-    uint256 public override totalSupply = 10000000e18;
+    uint256 public override totalSupply = 1000000e18;
 
     mapping (address => mapping (address => uint256)) internal allowances;
     mapping (address => uint256) internal balances;
