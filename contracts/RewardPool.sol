@@ -288,12 +288,23 @@ contract RewardPool is Ownable {
     {
         require(stakingTokenIndexes[address(_token)].added, "invalid token");
         require(block.timestamp >= launchDate, "deposits are not enabled yet");
-        
+
         uint256 _pid = stakingTokenIndexes[address(_token)].index;
         checkpoint(_pid);
         StakingToken storage pool = stakingTokens[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
+
+        uint256 depositFee = 0;
+        uint256 depositFeeHalf = 0;
+        
+        // Calculate fees
+        if (_amount > 0 && pool.depositFeeBP > 0) {
+            depositFee = _amount.mul(pool.depositFeeBP).div(10000);
+            depositFeeHalf = depositFee.div(2);
+        }
+
+        user.amount = user.amount.add(_amount).sub(depositFee);
 
         uint256 rewardBal = getAvailableRewardBalance();
         uint256 diff = 0;
@@ -303,33 +314,24 @@ contract RewardPool is Ownable {
             emit InsufficientRewardpool();
         }
 
-        safeRewardTransfer(msg.sender, pending);
+        user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
 
         if (_amount > 0) {
-            pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
-
-            if (pool.depositFeeBP > 0) {
-                uint256 depositFee = _amount.mul(pool.depositFeeBP).div(10000);
-                uint256 depositFeeHalf = depositFee.div(2);
-                pool.stakingToken.safeTransfer(feeAddA, depositFeeHalf);
-                pool.stakingToken.safeTransfer(feeAddB, depositFeeHalf);
-                
-                // If user is staking KEYFI, update the counter
-                if (address(_token) == address(rewardToken)) {
-                    totalKeyfiStake = totalKeyfiStake.add(_amount).sub(depositFee);
-                }
-                user.amount = user.amount.add(_amount).sub(depositFee);
-        
-            } else {
-                if (address(_token) == address(rewardToken)) {
-                    totalKeyfiStake = totalKeyfiStake.add(_amount);
-                }
-                user.amount = user.amount.add(_amount);
+            // If user is staking KEYFI, update the counter
+            if(address(_token) == address(rewardToken)) {
+                totalKeyfiStake = totalKeyfiStake.add(_amount).sub(depositFee);
             }
 
-            user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
+            pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
+
+            if (depositFeeHalf > 0) {
+                pool.stakingToken.safeTransfer(feeAddA, depositFeeHalf);
+                pool.stakingToken.safeTransfer(feeAddB, depositFeeHalf);
+            }
             emit Deposit(msg.sender, _pid, _amount);
         }
+
+        safeRewardTransfer(msg.sender, pending);
     }
 
     /**
