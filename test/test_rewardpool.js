@@ -31,24 +31,24 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
   context('With ERC/LP token added to the field', () => {
     beforeEach(async () => {
       this.lp = await MockERC20.new('LPToken', 'LP', '10000000000', { from: minter });
-      await this.lp.transfer(alice, '1000', { from: minter });
-      await this.lp.transfer(bob, '1000', { from: minter });
-      await this.lp.transfer(carol, '1000', { from: minter });
+      await this.lp.transfer(alice, '100000', { from: minter });
+      await this.lp.transfer(bob, '100000', { from: minter });
+      await this.lp.transfer(carol, '100000', { from: minter });
       this.lp2 = await MockERC20.new('LPToken2', 'LP2', '10000000000', { from: minter });
-      await this.lp2.transfer(alice, '1000', { from: minter });
-      await this.lp2.transfer(bob, '1000', { from: minter });
-      await this.lp2.transfer(carol, '1000', { from: minter });
+      await this.lp2.transfer(alice, '100000', { from: minter });
+      await this.lp2.transfer(bob, '100000', { from: minter });
+      await this.lp2.transfer(carol, '100000', { from: minter });
     });
 
     it('should allow emergency withdraw', async () => {
       // 100 per block farming rate starting at block 100 with bonus until block 1000
       this.staking = await RewardPool.new(this.keyfi.address, '100', '100', '1000', 10, 0, { from: alice });
-      await this.staking.addStakingToken('100', this.lp.address);
+      await this.staking.addStakingToken('100', this.lp.address, '0');
       await this.lp.approve(this.staking.address, '1000', { from: bob });
       this.staking.deposit(this.lp.address, '100', { from: bob });
-      assert.equal((await this.lp.balanceOf(bob)).valueOf(), '900');
+      assert.equal((await this.lp.balanceOf(bob)).valueOf(), '99900');
       await this.staking.emergencyWithdraw(this.lp.address, { from: bob });
-      assert.equal((await this.lp.balanceOf(bob)).valueOf(), '1000');
+      assert.equal((await this.lp.balanceOf(bob)).valueOf(), '100000');
     });
 
     it('should give out rewards only after farming time', async () => {
@@ -58,7 +58,7 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
 
       this.staking = await RewardPool.new(this.keyfi.address, '100', '100', '1000', 10, launch, { from: alice });
       await this.keyfi.transfer(this.staking.address, "10000000", { from: minter })
-      await this.staking.addStakingToken('100', this.lp.address);
+      await this.staking.addStakingToken('100', this.lp.address, '0');
       await this.lp.approve(this.staking.address, '1000', { from: bob });
       
       await assertThrows(this.staking.deposit(this.lp.address, '100', { from: bob }));  // deposits not enabled yet
@@ -89,7 +89,7 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
 
       this.staking = await RewardPool.new(this.keyfi.address, '100', '0', '1000', 10, launch, { from: alice });
       await this.keyfi.transfer(this.staking.address, "10000000", { from: minter })
-      await this.staking.addStakingToken('100', this.lp.address);
+      await this.staking.addStakingToken('100', this.lp.address, '0');
       await this.lp.approve(this.staking.address, '1000', { from: bob });
       
       await assertThrows(this.staking.deposit(this.lp.address, '100', { from: bob }));  // deposits not enabled yet
@@ -109,7 +109,7 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
       // 100 per block farming rate starting at block 200 with bonus until block 1000
       this.staking = await RewardPool.new(this.keyfi.address, '100', '200', '1000', 10, 0, { from: alice });
       await this.keyfi.transfer(this.staking.address, "10000000", { from: minter })
-      await this.staking.addStakingToken('100', this.lp.address);
+      await this.staking.addStakingToken('100', this.lp.address, '0');
       await this.lp.approve(this.staking.address, '1000', { from: bob });
       await time.advanceBlockTo('199');
       await time.advanceBlockTo('204');
@@ -117,18 +117,19 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
       await this.staking.deposit(this.lp.address, '10', { from: bob }); // block 210
 
       assert.equal((await this.keyfi.balanceOf(bob)).valueOf(), '0');
-      assert.equal((await this.lp.balanceOf(bob)).valueOf(), '990');
+      assert.equal((await this.lp.balanceOf(bob)).valueOf(), '99990');
       await time.advanceBlockTo('219');
       await this.staking.withdraw(this.lp.address, '10', { from: bob }); // block 220
       assert.equal((await this.keyfi.balanceOf(bob)).valueOf(), '10000');
-      assert.equal((await this.lp.balanceOf(bob)).valueOf(), '1000');
+      assert.equal((await this.lp.balanceOf(bob)).valueOf(), '100000');
     });
 
     it('should distribute rewards properly for each staker', async () => {
       // 100 per block farming rate starting at block 300 with bonus until block 1000
       this.staking = await RewardPool.new(this.keyfi.address, '100', '300', '1000', 10, 0, { from: alice });
       await this.keyfi.transfer(this.staking.address, "10000000", { from: minter })
-      await this.staking.addStakingToken('100', this.lp.address);
+      await this.staking.addStakingToken('100', this.lp.address, '0');
+      //await this.staking.addStakingToken('50', this.keyfi.address);
       await this.lp.approve(this.staking.address, '1000', { from: alice });
       await this.lp.approve(this.staking.address, '1000', { from: bob });
       await this.lp.approve(this.staking.address, '1000', { from: carol });
@@ -175,10 +176,10 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
       assert.equal((await this.keyfi.balanceOf(bob)).valueOf(), '11831');
       // Carol should have: 2*3/6*1000 + 10*3/7*1000 + 10*3/6.5*1000 + 10*3/4.5*1000 + 10*1000 = 26568
       assert.equal((await this.keyfi.balanceOf(carol)).valueOf(), '26568');
-      // All of them should have 1000 LPs back.
-      assert.equal((await this.lp.balanceOf(alice)).valueOf(), '1000');
-      assert.equal((await this.lp.balanceOf(bob)).valueOf(), '1000');
-      assert.equal((await this.lp.balanceOf(carol)).valueOf(), '1000');
+      // All of them should have 100000 LPs back.
+      assert.equal((await this.lp.balanceOf(alice)).valueOf(), '100000');
+      assert.equal((await this.lp.balanceOf(bob)).valueOf(), '100000');
+      assert.equal((await this.lp.balanceOf(carol)).valueOf(), '100000');
     });
 
     it('should give proper reward allocation to each pool', async () => {
@@ -188,13 +189,13 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
       await this.lp.approve(this.staking.address, '1000', { from: alice });
       await this.lp2.approve(this.staking.address, '1000', { from: bob });
       // Add first LP to the pool with allocation 1
-      await this.staking.addStakingToken('10', this.lp.address);
+      await this.staking.addStakingToken('10', this.lp.address, '0');
       // Alice deposits 10 LPs at block 410
       await time.advanceBlockTo('409');
       await this.staking.deposit(this.lp.address, '10', { from: alice });
       // Add LP2 to the pool with allocation 2 at block 420
       await time.advanceBlockTo('419');
-      await this.staking.addStakingToken('20', this.lp2.address);
+      await this.staking.addStakingToken('20', this.lp2.address, '0');
       // Alice should have 10*1000 pending reward
       assert.equal((await this.staking.pendingReward(this.lp.address, alice)).valueOf(), '10000');
       // Bob deposits 10 LP2s at block 425
@@ -208,12 +209,57 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
       assert.equal((await this.staking.pendingReward(this.lp2.address, bob)).valueOf(), '3333');
     });
 
+
+    it('should deduct deposit fees correctly', async () => {
+      // 100 per block farming rate starting at block 500 with bonus until block 1000
+      this.staking = await RewardPool.new(this.keyfi.address, '100', '400', '1000', 10, 0, { from: alice });
+      await this.keyfi.transfer(this.staking.address, "10000000", { from: minter })
+      //await this.lp.approve(this.staking.address, '10000', { from: alice });
+      await this.lp2.approve(this.staking.address, '10000', { from: bob });
+
+      // Add token with 300 fee BPs = 0.03%
+      await this.staking.addStakingToken('20', this.lp2.address, '300');
+      await this.staking.deposit(this.lp2.address, '5000', { from: bob });
+      
+      // Bob should have 5000 - 5000 * 0.03 = 4850
+      assert.equal(await this.staking.getBalance(this.lp2.address, { from: bob }), '4850')
+    });
+
+    it('should give proper reward allocation for KEYFI staking', async () => {
+      // 100 per block farming rate starting at block 500 with bonus until block 1000
+      this.staking = await RewardPool.new(this.keyfi.address, '100', '500', '1000', 10, 0, { from: alice });
+      await this.keyfi.transfer(this.staking.address, "10000000", { from: minter })
+      await this.keyfi.transfer(bob, "5000000", { from: minter })
+      await this.lp.approve(this.staking.address, '1000', { from: alice });
+      await this.keyfi.approve(this.staking.address, '5000000', { from: bob });
+
+      // Add first LP to the pool with allocation 1
+      await this.staking.addStakingToken('10', this.lp.address, '0');
+      // Alice deposits 10 LPs at block 510
+      await time.advanceBlockTo('509');
+      await this.staking.deposit(this.lp.address, '10', { from: alice });
+      // Add LP2 to the pool with allocation 2 at block 520
+      await time.advanceBlockTo('519');
+      await this.staking.addStakingToken('20', this.keyfi.address, '0');
+      // Alice should have 10*1000 pending reward
+      assert.equal((await this.staking.pendingReward(this.lp.address, alice)).valueOf(), '10000');
+      // Bob deposits 10 LP2s at block 425
+      await time.advanceBlockTo('524');
+      await this.staking.deposit(this.keyfi.address, '5000000', { from: bob });
+      // Alice should have 10000 + 5*1/3*1000 = 11666 pending reward
+      assert.equal((await this.staking.pendingReward(this.lp.address, alice)).valueOf(), '11666');
+      await time.advanceBlockTo('530');
+      // At block 530. Bob should get 5*2/3*1000 = 3333. Alice should get ~1666 more.
+      assert.equal((await this.staking.pendingReward(this.lp.address, alice)).valueOf(), '13333');
+      assert.equal((await this.staking.pendingReward(this.keyfi.address, bob)).valueOf(), '3333');
+    });
+
     it('should stop giving bonus rewards after the bonus period ends', async () => {
       // 100 per block farming rate starting at block 500 with bonus until block 600
       this.staking = await RewardPool.new(this.keyfi.address, '100', '500', '600', 10, 0, { from: alice });
       await this.keyfi.transfer(this.staking.address, "10000000", { from: minter })
       await this.lp.approve(this.staking.address, '1000', { from: alice });
-      await this.staking.addStakingToken('1', this.lp.address);
+      await this.staking.addStakingToken('1', this.lp.address, '0');
       // Alice deposits 10 LPs at block 590
       await time.advanceBlockTo('589');
       await this.staking.deposit(this.lp.address, '10', { from: alice });
@@ -230,13 +276,13 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
       this.staking = await RewardPool.new(this.keyfi.address, '100', '500', '600', 10, 0,  { from: alice });
       await this.keyfi.transfer(this.staking.address, "10000000", { from: minter })
       await this.lp.approve(this.staking.address, '1000', { from: alice });
-      await this.staking.addStakingToken('1', this.lp.address);
+      await this.staking.addStakingToken('1', this.lp.address, '0');
       
       await time.advanceBlockTo('700');
       await this.staking.deposit(this.lp.address, '10', { from: alice });
       
       await time.advanceBlockTo('703');
-      await this.staking.setAllocPoint(this.lp.address, '0')
+      await this.staking.setAllocPoint(this.lp.address, '0', '0')
       let pending1 = await this.staking.pendingReward(this.lp.address, alice)
       await time.advanceBlockTo('715');
       let pending2 = await this.staking.pendingReward(this.lp.address, alice)
@@ -259,13 +305,13 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
       await this.lp.approve(this.staking.address, '1000', { from: alice });
       await this.lp2.approve(this.staking.address, '1000', { from: bob });
       // Add first LP to the pool with allocation 1
-      await this.staking.addStakingToken('10', this.lp.address);
+      await this.staking.addStakingToken('10', this.lp.address, '0');
       
       await time.advanceBlockTo('809');
       await this.staking.deposit(this.lp.address, '10', { from: alice });
       // Add LP2 to the pool with allocation 2 at block 820
       await time.advanceBlockTo('819');
-      await this.staking.addStakingToken('20', this.lp2.address);
+      await this.staking.addStakingToken('20', this.lp2.address, '0');
       // Alice should have 10*1000 pending reward
       assert.equal((await this.staking.pendingReward(this.lp.address, alice)).valueOf(), '10000');
 

@@ -105,6 +105,7 @@ contract RewardPool is Ownable {
      * @dev adds a token to the list of allowed staking tokens
      * @param _allocPoint — The "weight" of this token in relation to other allowed tokens.
      * @param _stakingToken — The token to be added.
+     * @param _depositFeeBP — deposit fee basis points to be deducted on each deposit
      */
     function addStakingToken(uint256 _allocPoint, IERC20 _stakingToken, uint16 _depositFeeBP) 
         public 
