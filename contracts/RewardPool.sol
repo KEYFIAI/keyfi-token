@@ -304,7 +304,7 @@ contract RewardPool is Ownable {
             depositFeeHalf = depositFee.div(2);
         }
 
-        user.amount = user.amount.add(_amount).sub(depositFee);
+        user.amount = user.amount.add(_amount).sub(depositFeeHalf).sub(depositFeeHalf);
 
         uint256 rewardBal = getAvailableRewardBalance();
         uint256 diff = 0;
@@ -317,7 +317,7 @@ contract RewardPool is Ownable {
         user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
 
         if (_amount > 0) {
-            pool.totalStake = pool.totalStake.add(_amount).sub(depositFee);
+            pool.totalStake = pool.totalStake.add(_amount).sub(depositFeeHalf).sub(depositFeeHalf);
             pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
 
             if (depositFeeHalf > 0) {

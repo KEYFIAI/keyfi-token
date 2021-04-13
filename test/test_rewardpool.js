@@ -240,12 +240,13 @@ contract('RewardPool', ([alice, bob, carol, minter, community]) => {
       await this.staking.deposit(this.lp.address, '10', { from: alice });
       // Add LP2 to the pool with allocation 2 at block 520
       await time.advanceBlockTo('519');
-      await this.staking.addStakingToken('20', this.keyfi.address, '0');
+      await this.staking.addStakingToken('20', this.keyfi.address, '378');
       // Alice should have 10*1000 pending reward
       assert.equal((await this.staking.pendingReward(this.lp.address, alice)).valueOf(), '10000');
       // Bob deposits 10 LP2s at block 425
       await time.advanceBlockTo('524');
-      await this.staking.deposit(this.keyfi.address, '5000000', { from: bob });
+      await this.staking.deposit(this.keyfi.address, '50', { from: bob });
+
       // Alice should have 10000 + 5*1/3*1000 = 11666 pending reward
       assert.equal((await this.staking.pendingReward(this.lp.address, alice)).valueOf(), '11666');
       await time.advanceBlockTo('530');
