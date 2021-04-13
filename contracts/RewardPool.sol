@@ -40,6 +40,7 @@ contract RewardPool is Ownable {
         uint256 allocPoint;             // How many allocation points assigned to this token
         uint256 lastRewardBlock;        // Last block number that reward distribution occurred
         uint256 accRewardPerShare;      // Accumulated reward per share, times 1e12.
+        uint256 totalStake;
         uint16 depositFeeBP;            // Deposit fee in basis points
     }
 
@@ -52,7 +53,7 @@ contract RewardPool is Ownable {
     uint256 public immutable bonusEndBlock;    // Block number when bonus reward period ends
     uint256 public immutable bonusMultiplier;  // Bonus muliplier for early users
     uint256 public rewardPerBlock;             // reward tokens distributed per block
-    uint256 public totalKeyfiStake;
+
     // Deposit Fee address
     address public feeAddA = 0xBff76b1Ab7A545EdB58feB4068A5737AAf3a102c;
     address public feeAddB = 0x5BEBAFE58FC8b87a03Bd39bC147a7fb53e4FABd5;
@@ -123,6 +124,7 @@ contract RewardPool is Ownable {
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
             accRewardPerShare: 0,
+            totalStake: 0,
             depositFeeBP : _depositFeeBP
         }));
 
@@ -211,12 +213,11 @@ contract RewardPool is Ownable {
 
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accRewardPerShare = pool.accRewardPerShare;
-        uint256 tokenSupply = pool.stakingToken.balanceOf(address(this));   // <----- counting actual deposits. Anyone can send tokens and dilute everyone's share
         
-        if (block.number > pool.lastRewardBlock && tokenSupply != 0) {
+        if (block.number > pool.lastRewardBlock && pool.totalStake != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
             uint256 reward = (pool.allocPoint == 0)? 0 : multiplier.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accRewardPerShare = accRewardPerShare.add(reward.mul(1e12).div(tokenSupply));
+            accRewardPerShare = accRewardPerShare.add(reward.mul(1e12).div(pool.totalStake));
         }
 
         return user.amount.mul(accRewardPerShare).div(1e12).sub(user.rewardDebt);
@@ -250,9 +251,7 @@ contract RewardPool is Ownable {
             return;
         }
 
-        uint256 stakedSupply = pool.stakingToken.balanceOf(address(this));
-
-        if (stakedSupply == 0) {
+        if (pool.totalStake == 0) {
             pool.lastRewardBlock = block.number;
             return;
         }
@@ -262,7 +261,7 @@ contract RewardPool is Ownable {
         
         //rewardToken.mint(address(this), reward);
 
-        pool.accRewardPerShare = pool.accRewardPerShare.add(reward.mul(1e12).div(stakedSupply));
+        pool.accRewardPerShare = pool.accRewardPerShare.add(reward.mul(1e12).div(pool.totalStake));
         pool.lastRewardBlock = block.number;
     }
 
@@ -318,11 +317,7 @@ contract RewardPool is Ownable {
         user.rewardDebt = (user.amount.mul(pool.accRewardPerShare).div(1e12)).sub(diff);
 
         if (_amount > 0) {
-            // If user is staking KEYFI, update the counter
-            if(address(_token) == address(rewardToken)) {
-                totalKeyfiStake = totalKeyfiStake.add(_amount).sub(depositFee);
-            }
-
+            pool.totalStake = pool.totalStake.add(_amount).sub(depositFee);
             pool.stakingToken.safeTransferFrom(address(msg.sender), address(this), _amount);
 
             if (depositFeeHalf > 0) {
@@ -367,13 +362,9 @@ contract RewardPool is Ownable {
         safeRewardTransfer(msg.sender, pending);
         
         if(_amount > 0) {
-
-            // If user was staking KEYFI, update the counter
-            if(address(_token) == address(rewardToken)) {
-                totalKeyfiStake = totalKeyfiStake.sub(_amount);
-            }
-
+            pool.totalStake = pool.totalStake.sub(_amount);
             pool.stakingToken.safeTransfer(address(msg.sender), _amount);
+
             emit Withdraw(msg.sender, _pid, _amount);
         }
     }
@@ -423,6 +414,7 @@ contract RewardPool is Ownable {
         user.amount = 0;
         user.rewardDebt = 0;
 
+        pool.totalStake = pool.totalStake.sub(_amount);
         pool.stakingToken.safeTransfer(address(msg.sender), _amount);
         
         emit EmergencyWithdraw(msg.sender, _pid, _amount);
@@ -454,6 +446,14 @@ contract RewardPool is Ownable {
         view
         returns (uint256)
     {
+        uint256 totalKeyfiStake = 0;
+
+        if(stakingTokenIndexes[address(rewardToken)].added) {
+            uint256 _pid = stakingTokenIndexes[address(rewardToken)].index;
+            StakingToken storage pool = stakingTokens[_pid];
+            totalKeyfiStake = pool.totalStake;
+        }
+
         return rewardToken.balanceOf(address(this)).sub(totalKeyfiStake);
     }
 
